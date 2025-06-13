@@ -1,0 +1,33 @@
+# Development Configuration
+llm:
+  provider: "google"
+  model: "gemini-1.5-flash"
+  temperature: 0.7
+  max_tokens: 2000
+
+embeddings:
+  provider: "google"
+  model: "models/embedding-001"
+  dimensions: 768
+
+vectorstore:
+  type: "chroma"
+  persist_directory: "./data/chroma_db"
+  collection_name: "documents"
+
+chunking:
+  chunk_size: 1000
+  chunk_overlap: 200
+  separators: ["\n\n", "\n", " ", ""]
+
+agents:
+  max_iterations: 10
+  early_stopping_method: "generate"
+
+evaluation:
+  judge_model: "gemini-1.5-flash"
+  metrics: ["relevance", "accuracy", "completeness"]
+
+langfuse:
+  enabled: true
+  session_id: "dev-session"

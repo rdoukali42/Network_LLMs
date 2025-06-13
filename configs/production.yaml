@@ -1,0 +1,33 @@
+# Production Configuration
+llm:
+  provider: "google"
+  model: "gemini-1.5-flash"
+  temperature: 0.3
+  max_tokens: 1500
+
+embeddings:
+  provider: "google"
+  model: "models/embedding-001"
+  dimensions: 768
+
+vectorstore:
+  type: "chroma"
+  persist_directory: "./data/chroma_db_prod"
+  collection_name: "documents_prod"
+
+chunking:
+  chunk_size: 800
+  chunk_overlap: 100
+  separators: ["\n\n", "\n", " ", ""]
+
+agents:
+  max_iterations: 8
+  early_stopping_method: "generate"
+
+evaluation:
+  judge_model: "gemini-1.5-flash"
+  metrics: ["relevance", "accuracy", "completeness", "efficiency"]
+
+langfuse:
+  enabled: true
+  session_id: "prod-session"

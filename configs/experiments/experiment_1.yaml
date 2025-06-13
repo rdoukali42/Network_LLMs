@@ -1,0 +1,15 @@
+# Experiment 1: High Temperature, Large Chunks
+llm:
+  provider: "google"
+  model: "gemini-1.5-flash"
+  temperature: 0.9
+  max_tokens: 2500
+
+chunking:
+  chunk_size: 1500
+  chunk_overlap: 300
+
+agents:
+  max_iterations: 15
+
+experiment_name: "high_temp_large_chunks"

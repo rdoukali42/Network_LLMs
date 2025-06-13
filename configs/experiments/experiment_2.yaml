@@ -1,0 +1,15 @@
+# Experiment 2: Low Temperature, Small Chunks
+llm:
+  provider: "google"
+  model: "gemini-1.5-flash"
+  temperature: 0.1
+  max_tokens: 1000
+
+chunking:
+  chunk_size: 500
+  chunk_overlap: 50
+
+agents:
+  max_iterations: 5
+
+experiment_name: "low_temp_small_chunks"
