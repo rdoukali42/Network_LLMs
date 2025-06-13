@@ -7,8 +7,8 @@ import os
 from pathlib import Path
 
 # App configuration
-APP_TITLE = "AI Chat System"
-APP_ICON = "🤖"
+APP_TITLE = "AI Support Ticket System"
+APP_ICON = "🎫"
 
 # Default credentials (replace with proper authentication in production)
 DEFAULT_USERS = {
@@ -26,7 +26,7 @@ CONFIG_PATH = PROJECT_ROOT / "configs"
 SESSION_KEYS = {
     "authenticated": "authenticated",
     "username": "username", 
-    "chat_history": "chat_history",
+    "ticket_manager": "ticket_manager",
     "workflow_client": "workflow_client"
 }
 

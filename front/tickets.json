@@ -1,0 +1,54 @@
+[
+  {
+    "id": "e042ee7a",
+    "user": "admin",
+    "category": "Feature Request",
+    "priority": "Medium",
+    "subject": "Test",
+    "description": "Can told me how is 10 +15?",
+    "status": "Responded",
+    "created_at": "2025-06-13T17:54:34.395100",
+    "updated_at": "2025-06-13T17:54:37.110511",
+    "response": "Thank you for your ticket. Our AI system has received your request and it will be reviewed shortly.",
+    "response_at": "2025-06-13T17:54:37.110503"
+  },
+  {
+    "id": "4108a4ed",
+    "user": "test_user",
+    "category": "Technical Issue",
+    "priority": "Medium",
+    "subject": "Test ticket",
+    "description": "This is a test ticket to verify the system works.",
+    "status": "Responded",
+    "created_at": "2025-06-13T17:55:31.059734",
+    "updated_at": "2025-06-13T17:55:31.060066",
+    "response": "Test AI response",
+    "response_at": "2025-06-13T17:55:31.060063"
+  },
+  {
+    "id": "121447eb",
+    "user": "test_user",
+    "category": "Technical Issue",
+    "priority": "Medium",
+    "subject": "Math Help",
+    "description": "What is 25 + 37?",
+    "status": "Responded",
+    "created_at": "2025-06-13T17:59:34.284654",
+    "updated_at": "2025-06-13T17:59:34.285381",
+    "response": "Based on comprehensive research and analysis:\n\nRESEARCH FINDINGS:\n25 + 37 = 62\n\n\nANALYSIS & INSIGHTS:\n1. **Key Insights and Conclusions:** The sum of 25 and 37 is 62.  This is a straightforward mathematical calculation.\n\n2. **Calculations:** The provided research and the `calculator` tool both confirm that 25 + 37 = 62.\n\n3. **Practical Implications:** This calculation is useful in various everyday situations, from balancing a checkbook to calculating the total cost of items.  The accuracy of such simple calculations is crucial for avoiding errors in financial matters and other quantitative tasks.\n\n4. **Clear, Actionable Recommendations:**  To avoid errors in similar calculations, double-check your work or use a calculator.  For more complex calculations, consider using a spreadsheet or other computational tools.\n\n\nThis represents a complete multi-agent analysis of your query.",
+    "response_at": "2025-06-13T17:59:34.285377"
+  },
+  {
+    "id": "c1d54f6c",
+    "user": "admin",
+    "category": "Technical Issue",
+    "priority": "High",
+    "subject": "Test",
+    "description": "What is the capital of germany?",
+    "status": "Responded",
+    "created_at": "2025-06-13T18:00:27.059345",
+    "updated_at": "2025-06-13T18:00:28.798286",
+    "response": "Based on comprehensive research and analysis:\n\nRESEARCH FINDINGS:\nThe capital of Germany is Berlin.\n\n\nANALYSIS & INSIGHTS:\n1. **Key Insights and Conclusions:** The capital of Germany is Berlin.  This is a factual statement based on the provided research information.\n\n2. **Calculations:** No calculations are needed.\n\n3. **Practical Implications:** Knowing the capital of Germany is useful for various purposes, including geography lessons, travel planning, and general knowledge.\n\n4. **Clear, Actionable Recommendations:** The information provided is accurate and requires no further action.\n\n\nThis represents a complete multi-agent analysis of your query.",
+    "response_at": "2025-06-13T18:00:28.798277"
+  }
+]

@@ -14,7 +14,7 @@ from streamlit_config import DEFAULT_USERS
 
 def handle_authentication():
     """Handle user authentication."""
-    st.title("🔐 Login to AI Chat System")
+    st.title("🔐 Login to AI Support Ticket System")
     
     with st.form("login_form"):
         st.markdown("### Please enter your credentials")
@@ -45,6 +45,11 @@ def logout():
     st.session_state.authenticated = False
     if "username" in st.session_state:
         del st.session_state.username
+    if "ticket_manager" in st.session_state:
+        del st.session_state.ticket_manager
+    if "workflow_client" in st.session_state:
+        del st.session_state.workflow_client
+    # Legacy cleanup
     if "chat_history" in st.session_state:
         del st.session_state.chat_history
     st.rerun()

@@ -91,3 +91,15 @@ class WorkflowClient:
     def is_ready(self) -> bool:
         """Check if the workflow client is ready to process queries."""
         return self.system is not None
+    
+    def process_message(self, message: str) -> dict:
+        """
+        Alias for process_query to maintain compatibility with ticket system.
+        
+        Args:
+            message: The user's message or request
+            
+        Returns:
+            dict: Response from the AI system
+        """
+        return self.process_query(message)

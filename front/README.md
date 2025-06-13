@@ -1,32 +1,36 @@
-# AI Chat System - Streamlit Frontend
+# AI Support Ticket System - Streamlit Frontend
 
-A simple Streamlit-based chat interface for the AI workflow system.
+A modern Streamlit-based support ticket interface that integrates with the AI workflow system to provide intelligent, automated responses to user support requests.
 
-## Files Structure
+## 🚀 Quick Start
 
+### Prerequisites
+- Python 3.8+
+- Streamlit
+- Main AI workflow system dependencies
+- Valid `GOOGLE_API_KEY` in `.env` file
+
+### Installation & Launch
+```bash
+cd front
+streamlit run app.py
 ```
-front/
-├── app.py                    # Main Streamlit application entry point
-├── auth.py                   # Authentication component
-├── chat.py                   # Chat interface component  
-├── workflow_client.py        # AI workflow client
-├── streamlit_config.py       # App configuration
-├── requirements_streamlit.txt # Streamlit dependencies
-└── README.md                 # This file
-```
 
-## Setup
+**Default Login Credentials:**
+- Username: `admin` | Password: `admin123`
+- Username: `user` | Password: `user123`  
+- Username: `demo` | Password: `demo`
 
-1. **Install Streamlit (if not already installed):**
-   ```bash
-   pip install streamlit>=1.28.0
-   ```
+**Access:** Open http://localhost:8501 in your browser
 
-2. **Ensure your environment is set up:**
-   - Make sure your `.env` file contains `GOOGLE_API_KEY`
-   - Ensure all main project dependencies are installed
+## 🎫 Features
 
-## Quick Start
+### Support Ticket System
+- **Create Tickets**: Submit detailed support requests with categorization and prioritization
+- **AI Processing**: Automatic analysis and response generation using the main AI workflow
+- **Status Tracking**: Monitor ticket progress from submission to AI response
+- **User Isolation**: Each user sees only their own tickets
+- **Analytics Dashboard**: Overview of ticket statistics and trends
 
 ### Option 1: Use the start script
 ```bash
@@ -48,7 +52,22 @@ The app will open in your browser at `http://localhost:8501`
 - **Username**: `admin`, `user`, or `demo`
 - **Password**: `admin123`, `user123`, or `demo` respectively
 
-### Chat Interface
+### Support Ticket System
+Once logged in, you can:
+
+1. **Create Tickets**: Submit support requests with categorization and priority levels
+2. **Track Status**: Monitor your tickets and view AI-generated responses  
+3. **View Analytics**: See overview of your ticket history and statistics
+
+#### Ticket Categories:
+- Technical Issue
+- Feature Request
+- Bug Report
+- General Question
+- Account Issue
+
+#### Priority Levels:
+- Low, Medium, High, Critical
 - Type your questions in the chat input
 - The AI will process your query using the full workflow system
 - Chat history is maintained during your session

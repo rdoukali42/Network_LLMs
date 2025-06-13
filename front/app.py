@@ -14,7 +14,7 @@ sys.path.insert(0, str(project_root / "src"))
 sys.path.insert(0, str(front_dir))
 
 from auth import handle_authentication
-from chat import show_chat_interface
+from tickets import show_ticket_interface
 from streamlit_config import APP_TITLE, APP_ICON, SESSION_KEYS, check_environment
 
 def main():
@@ -40,7 +40,7 @@ def main():
     if not st.session_state[SESSION_KEYS["authenticated"]]:
         handle_authentication()
     else:
-        show_chat_interface()
+        show_ticket_interface()
 
 if __name__ == "__main__":
     main()
