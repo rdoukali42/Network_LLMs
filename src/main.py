@@ -10,7 +10,7 @@ from langfuse import observe
 
 from config.config_loader import config_loader
 from agents.base_agent import ResearchAgent, AnalysisAgent
-from tools.custom_tools import WebSearchTool, DocumentAnalysisTool, CalculatorTool
+from tools.custom_tools import DocumentAnalysisTool, CalculatorTool
 from vectorstore.vector_manager import VectorStoreManager
 from graphs.workflow import MultiAgentWorkflow
 from evaluation.llm_evaluator import LLMEvaluator
@@ -48,23 +48,20 @@ class AISystem:
     def _initialize_tools(self) -> List:
         """Initialize all available tools."""
         return [
-            WebSearchTool(),
             DocumentAnalysisTool(),
             CalculatorTool()
         ]
     
     def _initialize_agents(self) -> Dict[str, Any]:
         """Initialize all agents with their tools."""
-        """Initialize all agents with their tools."""
         tools = [
-            WebSearchTool(),
             DocumentAnalysisTool(),
             CalculatorTool()
         ]
         
         return {
-            "research": ResearchAgent(tools=tools),
-            "analysis": AnalysisAgent(tools=tools)
+            "research": ResearchAgent(config=self.config, tools=tools),
+            "analysis": AnalysisAgent(config=self.config, tools=tools)
         }
     
     @observe()
@@ -73,20 +70,38 @@ class AISystem:
         print(f"🔍 Processing query: {query}")
         
         try:
-            # For now, return a simple response
-            # This will be expanded once API keys are configured
-            response = {
-                "query": query,
-                "status": "success",
-                "result": f"Processed query: {query}",
-                "agents_used": list(self.agents.keys()),
-                "tools_available": len(self.tools)
-            }
-            
-            # If workflow is available, use it
+            # If workflow is available, use it for real AI processing
             if self.workflow:
                 workflow_result = self.workflow.run({"query": query})
-                response["workflow_result"] = workflow_result
+                
+                # Extract the final synthesized response
+                final_response = workflow_result.get("synthesis", "")
+                if not final_response or final_response == "Synthesis completed":
+                    # Fallback to combining available results
+                    research = workflow_result.get("research", "")
+                    analysis = workflow_result.get("analysis", "")
+                    if research and analysis:
+                        final_response = f"Research: {research}\n\nAnalysis: {analysis}"
+                    else:
+                        final_response = f"Processed query: {query}"
+                
+                response = {
+                    "query": query,
+                    "status": "success",
+                    "result": final_response,
+                    "agents_used": list(self.agents.keys()),
+                    "tools_available": len(self.tools),
+                    "workflow_result": workflow_result
+                }
+            else:
+                # Fallback when workflow is not available
+                response = {
+                    "query": query,
+                    "status": "success",
+                    "result": f"Processed query: {query}",
+                    "agents_used": list(self.agents.keys()),
+                    "tools_available": len(self.tools)
+                }
             
             return response
             
@@ -94,7 +109,8 @@ class AISystem:
             return {
                 "query": query,
                 "status": "error",
-                "error": str(e)
+                "error": str(e),
+                "result": f"Error processing query: {e}"
             }
     
     @observe()
@@ -237,6 +253,19 @@ def main():
     except Exception as e:
         print(f"❌ Error during system test: {e}")
         print("This is expected if API keys are not configured.")
+
+def process_query(query: str) -> Dict[str, Any]:
+    """Standalone function to process a query through the AI system."""
+    try:
+        system = AISystem()
+        return system.process_query(query)
+    except Exception as e:
+        return {
+            "query": query,
+            "status": "error",
+            "error": str(e),
+            "result": f"Error initializing system: {e}"
+        }
 
 
 if __name__ == "__main__":

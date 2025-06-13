@@ -19,7 +19,7 @@ def demo_without_api_keys():
     
     try:
         from src.config.config_loader import config_loader
-        from src.tools.custom_tools import WebSearchTool, DocumentAnalysisTool, CalculatorTool
+        from src.tools.custom_tools import DocumentAnalysisTool, CalculatorTool
         from src.agents.base_agent import ResearchAgent, AnalysisAgent
         
         # Load configuration
@@ -27,12 +27,10 @@ def demo_without_api_keys():
         print(f"✅ Configuration loaded: {config['llm']['provider']} - {config['llm']['model']}")
         
         # Initialize tools (these work without API keys)
-        web_tool = WebSearchTool()
         doc_tool = DocumentAnalysisTool()
         calc_tool = CalculatorTool()
         
         print("✅ Tools initialized:")
-        print(f"   📡 {web_tool.name}: {web_tool.description}")
         print(f"   📄 {doc_tool.name}: {doc_tool.description}")
         print(f"   🧮 {calc_tool.name}: {calc_tool.description}")
         

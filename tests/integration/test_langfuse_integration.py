@@ -11,9 +11,9 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-# Add src to Python path
-project_root = Path(__file__).parent
-sys.path.insert(0, str(project_root / "src"))
+# Add project root to Python path
+project_root = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(project_root))
 
 def test_langfuse_integration():
     """Test system with LangFuse tracking enabled."""

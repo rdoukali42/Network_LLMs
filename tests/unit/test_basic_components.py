@@ -12,7 +12,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'src'))
 
 from config.config_loader import ConfigLoader
 from agents.base_agent import ResearchAgent, AnalysisAgent
-from tools.custom_tools import WebSearchTool, CalculatorTool
+from tools.custom_tools import CalculatorTool, DocumentAnalysisTool
 
 
 class TestConfigLoader:
@@ -64,12 +64,6 @@ class TestAgents:
 
 class TestTools:
     """Test cases for custom tools."""
-    
-    def test_web_search_tool(self):
-        """Test WebSearchTool."""
-        tool = WebSearchTool()
-        result = tool._run("test query")
-        assert "test query" in result
     
     def test_calculator_tool(self):
         """Test CalculatorTool."""

@@ -105,7 +105,6 @@ The system supports multiple configurations:
 - **AnalysisAgent**: Focuses on data analysis and synthesis
 
 ### Tools
-- **WebSearchTool**: Search web for current information
 - **DocumentAnalysisTool**: Analyze documents for insights
 - **CalculatorTool**: Perform mathematical calculations
 

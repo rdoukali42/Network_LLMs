@@ -7,12 +7,12 @@ import sys
 import os
 from pathlib import Path
 
-# Add src to Python path
-project_root = Path(__file__).parent
-sys.path.insert(0, str(project_root / "src"))
+# Add project root to Python path
+project_root = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(project_root))
 
 try:
-    from src.config.config_loader import config_loader
+    from src.config.config_loader import ConfigLoader
     from src.evaluation.llm_evaluator import LLMEvaluator
     from src.chains.basic_chains import QuestionAnsweringChain
     from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
@@ -20,6 +20,7 @@ try:
     print("✅ All imports successful!")
     
     # Test configuration loading
+    config_loader = ConfigLoader()
     config = config_loader.load_config("development")
     print(f"✅ Configuration loaded: {config['llm']['provider']} - {config['llm']['model']}")
     

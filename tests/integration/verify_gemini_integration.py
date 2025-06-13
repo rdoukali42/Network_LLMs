@@ -6,16 +6,17 @@ Simple test to verify Gemini integration without API keys.
 import sys
 from pathlib import Path
 
-# Add src to Python path
-project_root = Path(__file__).parent
-sys.path.insert(0, str(project_root / "src"))
+# Add project root to Python path
+project_root = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(project_root))
 
 def test_configuration():
     """Test that configuration files are correctly updated."""
     try:
-        from src.config.config_loader import config_loader
+        from src.config.config_loader import ConfigLoader
         
         # Test development config
+        config_loader = ConfigLoader()
         dev_config = config_loader.load_config("development")
         assert dev_config['llm']['provider'] == "google"
         assert dev_config['llm']['model'] == "gemini-1.5-flash"
