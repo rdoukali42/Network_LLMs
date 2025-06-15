@@ -32,9 +32,10 @@ class MultiAgentWorkflow:
         workflow.add_node("data_guardian", self._data_guardian_step)
         workflow.add_node("maestro_synthesize", self._maestro_synthesize_step)
         workflow.add_node("hr_agent", self._hr_agent_step)
+        workflow.add_node("vocal_assistant", self._vocal_assistant_step)
         workflow.add_node("maestro_final", self._maestro_final_step)
         
-        # Define edges: Maestro → Data Guardian → Maestro → [Decision] → End or HR
+        # Define edges: Maestro → Data Guardian → Maestro → [Decision] → End or HR → Vocal → End
         workflow.set_entry_point("maestro_preprocess")
         workflow.add_edge("maestro_preprocess", "data_guardian")
         workflow.add_edge("data_guardian", "maestro_synthesize")
@@ -46,7 +47,8 @@ class MultiAgentWorkflow:
                 "hr_agent": "hr_agent"
             }
         )
-        workflow.add_edge("hr_agent", "maestro_final")
+        workflow.add_edge("hr_agent", "vocal_assistant")
+        workflow.add_edge("vocal_assistant", "maestro_final")
         workflow.add_edge("maestro_final", END)
         
         return workflow.compile()
@@ -151,17 +153,70 @@ class MultiAgentWorkflow:
         return state
     
     @observe()
+    def _vocal_assistant_step(self, state: WorkflowState) -> WorkflowState:
+        """Vocal Assistant step - initiate voice call with assigned employee."""
+        state = state.copy()
+        state["current_step"] = "vocal_assistant"
+        
+        # Get query and HR results
+        query = state.get("query", "")
+        hr_action = state["results"].get("hr_action", "no_assignment")
+        employee_data = state["results"].get("employee_data", None)
+        
+        if hr_action == "assign" and employee_data:
+            # Prepare ticket data from query and state
+            ticket_data = {
+                "id": "temp_id",  # Will be set by ticket system
+                "subject": "Support Request",
+                "description": query,
+                "category": "Technical Issue",
+                "priority": "Medium"
+            }
+            
+            # Run Vocal Assistant
+            if "vocal_assistant" in self.agents:
+                vocal_result = self.agents["vocal_assistant"].run({
+                    "action": "initiate_call",
+                    "ticket_data": ticket_data,
+                    "employee_data": employee_data,
+                    "query": query
+                })
+                state["results"]["vocal_assistant"] = vocal_result.get("result", "Call initiated")
+                state["results"]["vocal_action"] = vocal_result.get("action", "start_call")
+                state["results"]["call_info"] = vocal_result.get("call_info", None)
+            else:
+                state["results"]["vocal_assistant"] = "Vocal Assistant not available"
+                state["results"]["vocal_action"] = "no_call"
+        else:
+            state["results"]["vocal_assistant"] = "No employee assigned for voice call"
+            state["results"]["vocal_action"] = "no_call"
+        
+        return state
+
+    @observe()
     def _maestro_final_step(self, state: WorkflowState) -> WorkflowState:
-        """Final Maestro step - format employee referral response."""
+        """Final Maestro step - format employee referral response or voice call result."""
         state = state.copy()
         state["current_step"] = "maestro_final"
         
-        # Get query and HR result
+        # Get query and results
         query = state.get("query", "")
         hr_result = state["results"].get("hr_agent", "")
+        vocal_action = state["results"].get("vocal_action", "no_call")
+        call_info = state["results"].get("call_info", None)
         
-        # Format final referral response
-        final_response = f"""I couldn't find a direct answer in our knowledge base for your request, but I can help connect you with the right expert.
+        if vocal_action == "start_call" and call_info:
+            # Voice call initiated - provide call information
+            final_response = f"""Your ticket has been assigned to {call_info.get('employee_name', 'an expert')} who will contact you shortly.
+
+A voice call is being initiated to discuss your issue in detail and provide a personalized solution.
+
+Please be ready to answer the call to discuss: {call_info.get('ticket_subject', 'your request')}
+
+The assigned expert will call you to resolve this matter efficiently."""
+        else:
+            # Standard HR referral response
+            final_response = f"""I couldn't find a direct answer in our knowledge base for your request, but I can help connect you with the right expert.
 
 {hr_result}
 

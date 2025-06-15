@@ -82,11 +82,22 @@ class AISystem:
         # Initialize availability tool for HR Agent
         availability_tool = AvailabilityTool()
         
-        return {
+        agents = {
             "maestro": MaestroAgent(config=self.config, tools=maestro_tools),
             "data_guardian": DataGuardianAgent(config=self.config, tools=data_guardian_tools, vector_manager=self.vector_manager),
             "hr_agent": HRAgent(config=self.config, tools=[], availability_tool=availability_tool)
         }
+        
+        # Add VocalAssistant if available
+        try:
+            from .agents.vocal_assistant import VocalAssistantAgent
+            agents["vocal_assistant"] = VocalAssistantAgent(config=self.config, tools=[])
+            print("✅ VocalAssistant agent loaded successfully")
+        except ImportError as e:
+            print(f"⚠️ Warning: Could not load VocalAssistant agent: {e}")
+            print("Voice functionality will not be available")
+        
+        return agents
     
     def _load_raw_documents(self):
         """Load documents from data/raw/ folder into vector store."""
