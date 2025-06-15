@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 from langfuse import observe
 
 from config.config_loader import config_loader
-from agents.base_agent import ResearchAgent, AnalysisAgent
+from agents.base_agent import MaestroAgent, DataGuardianAgent
 from tools.custom_tools import DocumentAnalysisTool, CalculatorTool
 from vectorstore.vector_manager import VectorStoreManager
 from graphs.workflow import MultiAgentWorkflow
@@ -28,18 +28,32 @@ class AISystem:
         # Load configuration
         self.config = config_loader.load_config(config_name)
         
-        # Initialize components
+        # Initialize tools first
         self.tools = self._initialize_tools()
-        self.agents = self._initialize_agents()
+        
+        # Initialize vector manager
         self.vector_manager = None
+        self.agents = None
         self.workflow = None
         self.evaluator = None
         
         # Initialize advanced components (may require API keys)
         try:
+            # Vector manager first
             self.vector_manager = VectorStoreManager(self.config)
+            
+            # Load documents from raw folder into vector store
+            self._load_raw_documents()
+            
+            # Initialize agents with vector manager
+            self.agents = self._initialize_agents()
+            
+            # Initialize workflow with agents
             self.workflow = MultiAgentWorkflow(self.agents)
+            
+            # Initialize evaluator
             self.evaluator = LLMEvaluator(self.config)
+            
             print("✅ All components initialized successfully")
         except Exception as e:
             print(f"⚠️  Some components failed to initialize: {e}")
@@ -54,16 +68,65 @@ class AISystem:
     
     def _initialize_agents(self) -> Dict[str, Any]:
         """Initialize all agents with their tools."""
-        tools = [
-            DocumentAnalysisTool(),
+        # Tools for Maestro (general processing and calculations)
+        maestro_tools = [
             CalculatorTool()
         ]
         
+        # Tools for Data Guardian (document analysis)
+        data_guardian_tools = [
+            DocumentAnalysisTool()
+        ]
+        
         return {
-            "research": ResearchAgent(config=self.config, tools=tools),
-            "analysis": AnalysisAgent(config=self.config, tools=tools)
+            "maestro": MaestroAgent(config=self.config, tools=maestro_tools),
+            "data_guardian": DataGuardianAgent(config=self.config, tools=data_guardian_tools, vector_manager=self.vector_manager)
         }
     
+    def _load_raw_documents(self):
+        """Load documents from data/raw/ folder into vector store."""
+        import os
+        from pathlib import Path
+        
+        try:
+            # Get path to raw documents
+            project_root = Path(__file__).parent.parent
+            raw_docs_path = project_root / "data" / "raw"
+            
+            if not raw_docs_path.exists():
+                print(f"⚠️ Raw documents folder not found: {raw_docs_path}")
+                return
+            
+            documents = []
+            metadatas = []
+            
+            # Load all text files from raw folder
+            for file_path in raw_docs_path.glob("*"):
+                if file_path.is_file() and file_path.suffix in ['.txt', '.md']:
+                    try:
+                        with open(file_path, 'r', encoding='utf-8') as f:
+                            content = f.read()
+                            if content.strip():  # Only add non-empty files
+                                documents.append(content)
+                                metadatas.append({
+                                    'source': file_path.name,
+                                    'file_path': str(file_path),
+                                    'file_type': file_path.suffix
+                                })
+                        print(f"📄 Loaded document: {file_path.name}")
+                    except Exception as e:
+                        print(f"⚠️ Failed to load {file_path.name}: {e}")
+            
+            # Add documents to vector store
+            if documents:
+                self.vector_manager.add_documents(documents, metadatas)
+                print(f"✅ Successfully loaded {len(documents)} documents into vector store")
+            else:
+                print("⚠️ No documents found in raw folder")
+                
+        except Exception as e:
+            print(f"⚠️ Failed to load raw documents: {e}")
+
     @observe()
     def process_query(self, query: str) -> Dict[str, Any]:
         """Process a user query through the complete system."""

@@ -101,8 +101,8 @@ The system supports multiple configurations:
 ## Components
 
 ### Agents
-- **ResearchAgent**: Specializes in information gathering
-- **AnalysisAgent**: Focuses on data analysis and synthesis
+- **MaestroAgent**: Specializes in query preprocessing and response synthesis
+- **DataGuardianAgent**: Focuses on local document search and data verification
 
 ### Tools
 - **DocumentAnalysisTool**: Analyze documents for insights

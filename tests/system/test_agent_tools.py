@@ -22,7 +22,7 @@ def test_agents_with_tools():
     try:
         # Import components
         from config.config_loader import config_loader
-        from agents.base_agent import ResearchAgent
+        from agents.base_agent import MaestroAgent
         from tools.custom_tools import CalculatorTool, DocumentAnalysisTool
         
         # Load config
@@ -36,20 +36,20 @@ def test_agents_with_tools():
         print(f"✅ Initialized {len(tools)} tools")
         
         # Initialize agent with tools
-        research_agent = ResearchAgent(config=config, tools=tools)
-        print("✅ ResearchAgent initialized with tools")
+        maestro_agent = MaestroAgent(config=config, tools=tools)
+        print("✅ MaestroAgent initialized with tools")
         
         # Check if agent executor was created
-        if hasattr(research_agent, 'agent_executor') and research_agent.agent_executor:
+        if hasattr(maestro_agent, 'agent_executor') and maestro_agent.agent_executor:
             print("✅ Agent executor created successfully - tools are bound!")
         else:
             print("⚠️ Agent executor not created - falling back to LLM only")
         
-        # Test with a query that should trigger web search
-        test_query = "What are the latest developments in AI in 2025?"
+        # Test with a query that should trigger tool usage
+        test_query = "What are the latest developments in AI? Also calculate 25 + 37."
         print(f"\n🔍 Testing query: {test_query}")
         
-        result = research_agent.run({"query": test_query})
+        result = maestro_agent.run({"query": test_query})
         
         print(f"\n📊 Result:")
         print(f"Status: {result.get('status')}")

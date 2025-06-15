@@ -65,7 +65,7 @@ python tests/system/test_evaluator_fixes.py
 ## 📊 Test Coverage
 
 ### **Core System Components**
-- ✅ **Agents**: ResearchAgent, AnalysisAgent
+- ✅ **Agents**: MaestroAgent, DataGuardianAgent
 - ✅ **Tools**: CalculatorTool, DocumentAnalysisTool
 - ✅ **Workflows**: Multi-agent workflow execution
 - ✅ **Evaluation**: LLM evaluation system

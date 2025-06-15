@@ -17,7 +17,7 @@ class WorkflowState(TypedDict):
 
 
 class MultiAgentWorkflow:
-    """Multi-agent workflow using LangGraph."""
+    """Multi-agent workflow using LangGraph for Maestro and Data Guardian."""
     
     def __init__(self, agents: Dict[str, Any]):
         self.agents = agents
@@ -27,86 +27,86 @@ class MultiAgentWorkflow:
         """Build the workflow graph."""
         workflow = StateGraph(WorkflowState)
         
-        # Add nodes for each agent
-        workflow.add_node("research", self._research_step)
-        workflow.add_node("analysis", self._analysis_step)
-        workflow.add_node("synthesis", self._synthesis_step)
+        # Add nodes for each step
+        workflow.add_node("maestro_preprocess", self._maestro_preprocess_step)
+        workflow.add_node("data_guardian", self._data_guardian_step)
+        workflow.add_node("maestro_synthesize", self._maestro_synthesize_step)
         
-        # Define edges
-        workflow.set_entry_point("research")
-        workflow.add_edge("research", "analysis")
-        workflow.add_edge("analysis", "synthesis")
-        workflow.add_edge("synthesis", END)
+        # Define edges: Maestro → Data Guardian → Maestro → End
+        workflow.set_entry_point("maestro_preprocess")
+        workflow.add_edge("maestro_preprocess", "data_guardian")
+        workflow.add_edge("data_guardian", "maestro_synthesize")
+        workflow.add_edge("maestro_synthesize", END)
         
         return workflow.compile()
     
     @observe()
-    def _research_step(self, state: WorkflowState) -> WorkflowState:
-        """Research step in the workflow."""
+    def _maestro_preprocess_step(self, state: WorkflowState) -> WorkflowState:
+        """Maestro preprocessing step - reformulate query for search."""
         state = state.copy()
-        state["current_step"] = "research"
+        state["current_step"] = "maestro_preprocess"
         
         # Get query from state
         query = state.get("query", "")
         if not query and state.get("messages"):
             query = state["messages"][-1].get("content", "")
         
-        # Run research agent
-        if "research" in self.agents:
-            research_result = self.agents["research"].run({"query": query})
-            state["results"]["research"] = research_result.get("result", "Research completed")
-        else:
-            state["results"]["research"] = "Research completed"
-        
-        return state
-    
-    @observe()
-    def _analysis_step(self, state: WorkflowState) -> WorkflowState:
-        """Analysis step in the workflow."""
-        state = state.copy()
-        state["current_step"] = "analysis"
-        
-        # Get query and research result
-        query = state.get("query", "")
-        research_result = state["results"].get("research", "")
-        
-        # Run analysis agent
-        if "analysis" in self.agents:
-            analysis_result = self.agents["analysis"].run({
+        # Run Maestro preprocessing
+        if "maestro" in self.agents:
+            maestro_result = self.agents["maestro"].run({
                 "query": query,
-                "research_result": research_result
+                "stage": "preprocess"
             })
-            state["results"]["analysis"] = analysis_result.get("result", "Analysis completed")
+            state["results"]["maestro_preprocess"] = maestro_result.get("result", "Query processed")
         else:
-            state["results"]["analysis"] = "Analysis completed"
+            state["results"]["maestro_preprocess"] = query  # Fallback
         
         return state
     
     @observe()
-    def _synthesis_step(self, state: WorkflowState) -> WorkflowState:
-        """Synthesis step in the workflow."""
+    def _data_guardian_step(self, state: WorkflowState) -> WorkflowState:
+        """Data Guardian step - search local documents."""
         state = state.copy()
-        state["current_step"] = "synthesis"
+        state["current_step"] = "data_guardian"
         
-        # Combine research and analysis results
-        research = state["results"].get("research", "")
-        analysis = state["results"].get("analysis", "")
+        # Get query and preprocessed queries
+        query = state.get("query", "")
+        search_queries = state["results"].get("maestro_preprocess", query)
         
-        # Create final synthesized response
-        if research and analysis:
-            synthesis = f"""Based on comprehensive research and analysis:
-
-RESEARCH FINDINGS:
-{research}
-
-ANALYSIS & INSIGHTS:
-{analysis}
-
-This represents a complete multi-agent analysis of your query."""
+        # Run Data Guardian search
+        if "data_guardian" in self.agents:
+            data_guardian_result = self.agents["data_guardian"].run({
+                "query": query,
+                "search_queries": search_queries
+            })
+            state["results"]["data_guardian"] = data_guardian_result.get("result", "No documents found")
         else:
-            synthesis = "Synthesis completed"
+            state["results"]["data_guardian"] = "Data Guardian not available"
         
-        state["results"]["synthesis"] = synthesis
+        return state
+    
+    @observe()
+    def _maestro_synthesize_step(self, state: WorkflowState) -> WorkflowState:
+        """Maestro synthesis step - create final response."""
+        state = state.copy()
+        state["current_step"] = "maestro_synthesize"
+        
+        # Get query and Data Guardian result
+        query = state.get("query", "")
+        data_guardian_result = state["results"].get("data_guardian", "")
+        
+        # Run Maestro synthesis
+        if "maestro" in self.agents:
+            synthesis_result = self.agents["maestro"].run({
+                "query": query,
+                "stage": "synthesize",
+                "data_guardian_result": data_guardian_result
+            })
+            state["results"]["synthesis"] = synthesis_result.get("result", "Response generated")
+        else:
+            # Fallback synthesis
+            state["results"]["synthesis"] = f"Based on available information: {data_guardian_result}"
+        
         return state
     
     @observe()
@@ -127,36 +127,35 @@ This represents a complete multi-agent analysis of your query."""
             final_state = self.graph.invoke(initial_state)
             return final_state["results"]
         except Exception as e:
-            # Fallback: run agents manually
+            # Fallback: run agents manually in sequence
             print(f"Running fallback workflow for: {query}")
             
-            # Research step
-            research_result = self.agents["research"].run({"query": query})
-            print(f"Research result: {research_result}")
-            
-            # Analysis step  
-            analysis_result = self.agents["analysis"].run({
+            # Step 1: Maestro preprocessing
+            maestro_preprocess = self.agents["maestro"].run({
                 "query": query,
-                "research_result": research_result.get("result", "")
+                "stage": "preprocess"
             })
-            print(f"Analysis result: {analysis_result}")
+            print(f"Maestro preprocess result: {maestro_preprocess}")
             
-            # Synthesis step
-            research_text = research_result.get("result", "Research completed")
-            analysis_text = analysis_result.get("result", "Analysis completed")
+            # Step 2: Data Guardian search
+            data_guardian_result = self.agents["data_guardian"].run({
+                "query": query,
+                "search_queries": maestro_preprocess.get("result", query)
+            })
+            print(f"Data Guardian result: {data_guardian_result}")
             
-            synthesis = f"""Based on comprehensive research and analysis:
-
-RESEARCH FINDINGS:
-{research_text}
-
-ANALYSIS & INSIGHTS:
-{analysis_text}
-
-This represents a complete multi-agent analysis of your query."""
+            # Step 3: Maestro synthesis
+            maestro_synthesis = self.agents["maestro"].run({
+                "query": query,
+                "stage": "synthesize", 
+                "data_guardian_result": data_guardian_result.get("result", "")
+            })
+            print(f"Maestro synthesis result: {maestro_synthesis}")
             
+            # Return combined results
             return {
-                "research": research_text,
-                "analysis": analysis_text,
-                "synthesis": synthesis
+                "maestro_preprocess": maestro_preprocess.get("result", ""),
+                "data_guardian": data_guardian_result.get("result", ""),
+                "synthesis": maestro_synthesis.get("result", ""),
+                "documents_found": data_guardian_result.get("documents_found", 0)
             }

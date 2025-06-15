@@ -64,8 +64,8 @@ Access at: http://localhost:8501
 ## 🤖 System Components
 
 ### **Core Agents**
-- **ResearchAgent**: Information gathering and research
-- **AnalysisAgent**: Data analysis and synthesis
+- **MaestroAgent**: Query preprocessing and response synthesis
+- **DataGuardianAgent**: Local document search and verification
 
 ### **Available Tools**
 - **CalculatorTool**: Mathematical calculations

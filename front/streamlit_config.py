@@ -32,7 +32,9 @@ SESSION_KEYS = {
 
 def check_environment():
     """Check if required environment variables are set."""
-    required_vars = ["GOOGLE_API_KEY"]
+    # Since we removed WebSearchTool, no critical environment variables are required
+    # The AI system will work with default configurations
+    required_vars = []
     missing_vars = []
     
     for var in required_vars:

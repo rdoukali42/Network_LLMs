@@ -20,7 +20,7 @@ def demo_without_api_keys():
     try:
         from src.config.config_loader import config_loader
         from src.tools.custom_tools import DocumentAnalysisTool, CalculatorTool
-        from src.agents.base_agent import ResearchAgent, AnalysisAgent
+        from src.agents.base_agent import MaestroAgent, DataGuardianAgent
         
         # Load configuration
         config = config_loader.load_config("development")

@@ -11,7 +11,7 @@ import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'src'))
 
 from config.config_loader import ConfigLoader
-from agents.base_agent import ResearchAgent, AnalysisAgent
+from agents.base_agent import MaestroAgent, DataGuardianAgent
 from tools.custom_tools import CalculatorTool, DocumentAnalysisTool
 
 
@@ -41,25 +41,25 @@ class TestConfigLoader:
 class TestAgents:
     """Test cases for agents."""
     
-    def test_research_agent_initialization(self):
-        """Test ResearchAgent can be initialized."""
-        agent = ResearchAgent()
-        assert agent.name == "ResearchAgent"
+    def test_maestro_agent_initialization(self):
+        """Test MaestroAgent can be initialized."""
+        agent = MaestroAgent()
+        assert agent.name == "MaestroAgent"
         assert len(agent.tools) == 0
     
-    def test_analysis_agent_initialization(self):
-        """Test AnalysisAgent can be initialized."""
-        agent = AnalysisAgent()
-        assert agent.name == "AnalysisAgent"
+    def test_data_guardian_agent_initialization(self):
+        """Test DataGuardianAgent can be initialized."""
+        agent = DataGuardianAgent()
+        assert agent.name == "DataGuardianAgent"
         assert len(agent.tools) == 0
     
     def test_agent_system_prompt(self):
         """Test agents have system prompts."""
-        research_agent = ResearchAgent()
-        analysis_agent = AnalysisAgent()
+        maestro_agent = MaestroAgent()
+        data_guardian_agent = DataGuardianAgent()
         
-        assert "research" in research_agent.get_system_prompt().lower()
-        assert "analysis" in analysis_agent.get_system_prompt().lower()
+        assert "maestro" in maestro_agent.get_system_prompt().lower()
+        assert "guardian" in data_guardian_agent.get_system_prompt().lower()
 
 
 class TestTools:

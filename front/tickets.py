@@ -102,11 +102,27 @@ def show_ticket_interface():
     col1, col2 = st.columns([3, 1])
     
     with col1:
-        st.title(f"🎫 Support Ticket System - Welcome {st.session_state.username}")
+        # Show enhanced user information
+        user_display = st.session_state.get("user_full_name", st.session_state.username)
+        user_role = st.session_state.get("user_role", "User")
+        st.title(f"🎫 Support Ticket System")
+        st.markdown(f"**Welcome {user_display}** | *{user_role}*")
     
     with col2:
         if st.button("Logout", use_container_width=True):
             logout()
+    
+    # Show employee management for admin users
+    if st.session_state.username == "admin":
+        if st.button("👥 Manage Employees", use_container_width=True):
+            st.session_state.show_employee_management = not st.session_state.get("show_employee_management", False)
+            st.rerun()
+    
+    # Employee management interface
+    if st.session_state.get("show_employee_management", False):
+        from registration import show_employee_management
+        show_employee_management()
+        return
     
     # Initialize ticket manager
     if "ticket_manager" not in st.session_state:
