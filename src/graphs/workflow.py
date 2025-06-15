@@ -31,12 +31,23 @@ class MultiAgentWorkflow:
         workflow.add_node("maestro_preprocess", self._maestro_preprocess_step)
         workflow.add_node("data_guardian", self._data_guardian_step)
         workflow.add_node("maestro_synthesize", self._maestro_synthesize_step)
+        workflow.add_node("hr_agent", self._hr_agent_step)
+        workflow.add_node("maestro_final", self._maestro_final_step)
         
-        # Define edges: Maestro → Data Guardian → Maestro → End
+        # Define edges: Maestro → Data Guardian → Maestro → [Decision] → End or HR
         workflow.set_entry_point("maestro_preprocess")
         workflow.add_edge("maestro_preprocess", "data_guardian")
         workflow.add_edge("data_guardian", "maestro_synthesize")
-        workflow.add_edge("maestro_synthesize", END)
+        workflow.add_conditional_edges(
+            "maestro_synthesize",
+            self._route_after_synthesis,
+            {
+                "end": END,
+                "hr_agent": "hr_agent"
+            }
+        )
+        workflow.add_edge("hr_agent", "maestro_final")
+        workflow.add_edge("maestro_final", END)
         
         return workflow.compile()
     
@@ -87,7 +98,7 @@ class MultiAgentWorkflow:
     
     @observe()
     def _maestro_synthesize_step(self, state: WorkflowState) -> WorkflowState:
-        """Maestro synthesis step - create final response."""
+        """Maestro synthesis step - create final response or route to HR."""
         state = state.copy()
         state["current_step"] = "maestro_synthesize"
         
@@ -103,9 +114,58 @@ class MultiAgentWorkflow:
                 "data_guardian_result": data_guardian_result
             })
             state["results"]["synthesis"] = synthesis_result.get("result", "Response generated")
+            state["results"]["synthesis_status"] = synthesis_result.get("status", "success")
         else:
             # Fallback synthesis
             state["results"]["synthesis"] = f"Based on available information: {data_guardian_result}"
+            state["results"]["synthesis_status"] = "success"
+        
+        return state
+    
+    def _route_after_synthesis(self, state: WorkflowState) -> str:
+        """Route to HR agent if no sufficient answer found."""
+        synthesis_status = state["results"].get("synthesis_status", "success")
+        if synthesis_status == "route_to_hr":
+            return "hr_agent"
+        return "end"
+    
+    @observe()
+    def _hr_agent_step(self, state: WorkflowState) -> WorkflowState:
+        """HR Agent step - find suitable employee."""
+        state = state.copy()
+        state["current_step"] = "hr_agent"
+        
+        # Get query
+        query = state.get("query", "")
+        
+        # Run HR Agent
+        if "hr_agent" in self.agents:
+            hr_result = self.agents["hr_agent"].run({"query": query})
+            state["results"]["hr_agent"] = hr_result.get("result", "No employee found")
+        else:
+            state["results"]["hr_agent"] = "HR Agent not available"
+        
+        return state
+    
+    @observe()
+    def _maestro_final_step(self, state: WorkflowState) -> WorkflowState:
+        """Final Maestro step - format employee referral response."""
+        state = state.copy()
+        state["current_step"] = "maestro_final"
+        
+        # Get query and HR result
+        query = state.get("query", "")
+        hr_result = state["results"].get("hr_agent", "")
+        
+        # Format final referral response
+        final_response = f"""I couldn't find a direct answer in our knowledge base for your request, but I can help connect you with the right expert.
+
+{hr_result}
+
+Please reach out to them directly - they'll be able to provide specialized assistance with your specific issue."""
+        
+        state["results"]["final_response"] = final_response
+        state["results"]["synthesis"] = final_response  # Update synthesis for consistency
         
         return state
     
@@ -151,6 +211,27 @@ class MultiAgentWorkflow:
                 "data_guardian_result": data_guardian_result.get("result", "")
             })
             print(f"Maestro synthesis result: {maestro_synthesis}")
+            
+            # Check if need to route to HR
+            if maestro_synthesis.get("status") == "route_to_hr":
+                # Step 4: HR Agent
+                hr_result = self.agents.get("hr_agent", {}).run({"query": query}) if "hr_agent" in self.agents else {"result": "HR Agent not available"}
+                print(f"HR Agent result: {hr_result}")
+                
+                # Step 5: Final response formatting
+                final_response = f"""I couldn't find a direct answer in our knowledge base for your request, but I can help connect you with the right expert.
+
+{hr_result.get("result", "")}
+
+Please reach out to them directly - they'll be able to provide specialized assistance with your specific issue."""
+                
+                return {
+                    "maestro_preprocess": maestro_preprocess.get("result", ""),
+                    "data_guardian": data_guardian_result.get("result", ""),
+                    "hr_agent": hr_result.get("result", ""),
+                    "synthesis": final_response,
+                    "documents_found": data_guardian_result.get("documents_found", 0)
+                }
             
             # Return combined results
             return {

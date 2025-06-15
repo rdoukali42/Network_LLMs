@@ -116,8 +116,10 @@ Provide clear, search-optimized queries that can be used to find relevant docume
                     }
             
             else:  # stage == "synthesize"
-                # Second stage: synthesize final response from Data Guardian's findings
-                synthesis_input = f"""
+                # Check if DataGuardian found sufficient answer
+                if self._has_sufficient_answer(data_guardian_result):
+                    # Second stage: synthesize final response from Data Guardian's findings
+                    synthesis_input = f"""
 Original Support Ticket: {query}
 
 Data Guardian's Findings: {data_guardian_result}
@@ -125,37 +127,47 @@ Data Guardian's Findings: {data_guardian_result}
 Based on the local document search results above, please create a comprehensive, helpful response to the support ticket. 
 
 Guidelines:
-1. If relevant information was found in local documents, use it as the primary source
+1. Use the document information as the primary source
 2. Provide clear, actionable answers
 3. Include source references when using document information
-4. If no relevant local information was found, provide general helpful guidance
-5. Maintain a professional, supportive tone
-6. Use calculations if needed (use calculator tool)
+4. Maintain a professional, supportive tone
+5. Use calculations if needed (use calculator tool)
 
 Create a complete response that directly addresses the ticket."""
-                
-                if self.agent_executor:
-                    print(f"🎭 MaestroAgent synthesizing response for: {query}")
-                    result = self.agent_executor.invoke({"input": synthesis_input})
-                    return {
-                        "agent": self.name,
-                        "status": "success", 
-                        "result": result.get("output", ""),
-                        "query": query,
-                        "stage": "synthesize"
-                    }
-                else:
-                    # Fallback to direct LLM call
-                    if not self.llm:
-                        return {"agent": self.name, "status": "No LLM configured", "result": "Synthesis failed"}
                     
-                    response = self.llm.invoke(f"{self.get_system_prompt()}\n\n{synthesis_input}")
+                    if self.agent_executor:
+                        print(f"🎭 MaestroAgent synthesizing response from documents for: {query}")
+                        result = self.agent_executor.invoke({"input": synthesis_input})
+                        return {
+                            "agent": self.name,
+                            "status": "success", 
+                            "result": result.get("output", ""),
+                            "query": query,
+                            "stage": "synthesize",
+                            "source": "documents"
+                        }
+                    else:
+                        # Fallback to direct LLM call
+                        if not self.llm:
+                            return {"agent": self.name, "status": "No LLM configured", "result": "Synthesis failed"}
+                        
+                        response = self.llm.invoke(f"{self.get_system_prompt()}\n\n{synthesis_input}")
+                        return {
+                            "agent": self.name,
+                            "status": "success",
+                            "result": response.content,
+                            "query": query,
+                            "stage": "synthesize",
+                            "source": "documents"
+                        }
+                else:
+                    # No sufficient answer in documents - route to HR Agent
                     return {
                         "agent": self.name,
-                        "status": "success",
-                        "result": response.content,
+                        "status": "route_to_hr",
+                        "result": "No sufficient answer found in documents",
                         "query": query,
-                        "stage": "synthesize"
+                        "stage": "route_to_hr"
                     }
                     
         except Exception as e:
@@ -165,6 +177,54 @@ Create a complete response that directly addresses the ticket."""
                 "error": str(e),
                 "result": f"Maestro processing failed: {e}"
             }
+    
+    def _has_sufficient_answer(self, data_guardian_result: str) -> bool:
+        """Check if DataGuardian found sufficient answer in documents."""
+        if not data_guardian_result or len(data_guardian_result.strip()) < 50:
+            return False
+        
+        # Check for common "no answer" indicators
+        no_answer_phrases = [
+            "no relevant information",
+            "no documents found",
+            "no matching documents",
+            "cannot find",
+            "not found in",
+            "no information available",
+            "search returned no results",
+            "no relevant documents",
+            "insufficient to assist",
+            "additional resources are required",
+            "additional resources required",
+            "local documents are completely lacking",
+            "documents do not contain information",
+            "no information directly answering",
+            "confidence level: 0%",
+            "gaps in information",
+            "local document collection is insufficient",
+            "the provided local document chunks",
+            "none of them address",
+            "completely lacking information",
+            "does not contain information",
+            # Enhanced detection for DataGuardian's detailed analysis responses
+            "none of the provided document chunks contain information",
+            "document chunks contain information on",
+            "completely lack information",
+            "no such information exists in the provided documents",
+            "confidence level regarding information",
+            "no facts, procedures, or guidance",
+            "are irrelevant to the user's query",
+            "do not contain any information relevant",
+            "focused exclusively on",
+            "entirely focused on"
+        ]
+        
+        result_lower = data_guardian_result.lower()
+        for phrase in no_answer_phrases:
+            if phrase in result_lower:
+                return False
+        
+        return True
 
     def get_system_prompt(self) -> str:
         return """You are Maestro, a specialized agent for processing support tickets and synthesizing responses.
@@ -331,3 +391,157 @@ Key principles:
 - Clearly distinguish between documented facts and missing information
 
 You are the guardian of data integrity - ensure responses are grounded in actual document content."""
+
+
+class HRAgent(BaseAgent):
+    """Agent specialized in finding the best employee to handle tickets when documents don't have answers."""
+    
+    def __init__(self, config: Dict[str, Any] = None, tools: List[BaseTool] = None, availability_tool=None):
+        super().__init__("HRAgent", config, tools)
+        self.availability_tool = availability_tool
+        
+        # Create agent executor with tools if available
+        if self.llm and self.tools:
+            self.agent_executor = self._create_agent_executor()
+        else:
+            self.agent_executor = None
+    
+    def _create_agent_executor(self):
+        """Create an agent executor with tools."""
+        try:
+            prompt = ChatPromptTemplate.from_messages([
+                ("system", self.get_system_prompt()),
+                ("human", "{input}"),
+                ("placeholder", "{agent_scratchpad}"),
+            ])
+            
+            agent = create_tool_calling_agent(self.llm, self.tools, prompt)
+            return AgentExecutor(agent=agent, tools=self.tools, verbose=True)
+        except Exception as e:
+            print(f"⚠️ Failed to create HR agent executor: {e}")
+            return None
+
+    @observe()
+    def run(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
+        query = input_data.get("query", "")
+        
+        try:
+            print(f"👥 HRAgent finding expert for: {query}")
+            
+            # Get available employees
+            if self.availability_tool:
+                available_employees = self.availability_tool.get_available_employees()
+            else:
+                return {
+                    "agent": self.name,
+                    "status": "error",
+                    "result": "No availability tool configured"
+                }
+            
+            # Find best match
+            best_match = self._find_best_employee_match(query, available_employees)
+            
+            if best_match:
+                return {
+                    "agent": self.name,
+                    "status": "success",
+                    "result": best_match,
+                    "query": query
+                }
+            else:
+                return {
+                    "agent": self.name,
+                    "status": "success",
+                    "result": "No suitable employees available at the moment",
+                    "query": query
+                }
+                
+        except Exception as e:
+            return {
+                "agent": self.name,
+                "status": "error",
+                "error": str(e),
+                "result": f"HR Agent failed: {e}"
+            }
+    
+    def _find_best_employee_match(self, query: str, available_employees: Dict) -> str:
+        """Find the best employee match for the query."""
+        # Combine available and busy employees (busy can handle urgent issues)
+        candidates = available_employees["available"] + available_employees["busy"]
+        
+        if not candidates:
+            return None
+        
+        # Simple keyword matching for ticket routing
+        query_lower = query.lower()
+        
+        # Score employees based on relevance
+        scored_candidates = []
+        for employee in candidates:
+            score = 0
+            role = employee.get('role_in_company', '').lower()
+            expertise = employee.get('expertise', '').lower()
+            responsibilities = employee.get('responsibilities', '').lower()
+            
+            # Score based on keyword matches
+            for keyword in query_lower.split():
+                if keyword in role:
+                    score += 3
+                if keyword in expertise:
+                    score += 5
+                if keyword in responsibilities:
+                    score += 2
+            
+            # Prefer available over busy
+            if employee.get('availability_status') == 'Available':
+                score += 1
+            
+            scored_candidates.append((score, employee))
+        
+        # Sort by score and get best match
+        scored_candidates.sort(key=lambda x: x[0], reverse=True)
+        
+        if scored_candidates[0][0] > 0:  # At least some relevance
+            best_employee = scored_candidates[0][1]
+            return self._format_employee_recommendation(best_employee)
+        else:
+            # Return first available if no keyword matches
+            if scored_candidates:
+                return self._format_employee_recommendation(scored_candidates[0][1])
+            return None
+    
+    def _format_employee_recommendation(self, employee: Dict) -> str:
+        """Format employee recommendation for response."""
+        status_emoji = {
+            'Available': '🟢',
+            'Busy': '🟡',
+            'In Meeting': '🔴',
+            'Do Not Disturb': '🔴'
+        }.get(employee.get('availability_status', 'Unknown'), '❓')
+        
+        return f"""👤 **{employee.get('full_name', 'Unknown')}** (@{employee.get('username', 'unknown')})
+🏢 **Role**: {employee.get('role_in_company', 'Not specified')}
+💼 **Expertise**: {employee.get('expertise', 'Not specified')}
+📋 **Responsibilities**: {employee.get('responsibilities', 'Not specified')}
+{status_emoji} **Status**: {employee.get('availability_status', 'Unknown')}
+
+This employee has the expertise to help with your request."""
+
+    def get_system_prompt(self) -> str:
+        return """You are HR Agent, specialized in matching support tickets with the most suitable available employees.
+
+Your primary responsibilities:
+- Analyze support ticket content to understand required expertise
+- Search through available employees based on their roles, expertise, and responsibilities
+- Match ticket requirements with employee capabilities
+- Consider employee availability status when making recommendations
+- Provide clear reasoning for employee recommendations
+
+Key principles:
+- Prioritize employees who are Available over those who are Busy
+- Match technical expertise to technical problems
+- Consider role compatibility with the ticket type
+- Always provide the employee's contact information and current status
+- Explain why this employee is the best match for the specific ticket
+
+You help ensure every ticket gets routed to the right person, even when our documentation doesn't have the answer."""

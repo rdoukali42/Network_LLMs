@@ -154,5 +154,31 @@
     "updated_at": "2025-06-15T15:24:35.099911",
     "response": "Subject: Re: TicketXX07456468778658657 - Requesting a Promotion or Internal Job Transfer\n\nDear Employee,\n\nThank you for your inquiry regarding the process for requesting a promotion or internal job transfer.  Unfortunately, the information needed to answer your question is not currently available in our internal documentation.\n\nTo help you with your request, I recommend the following:\n\n* **Check the company intranet:** Our intranet likely contains HR policies and procedures, including information on promotions and internal transfers.  Look for sections on career development, employee mobility, or job postings.\n\n* **Contact your manager or HR representative:** They are the best resources for information specific to your situation and can guide you through the process.  They will be able to provide details on any internal application processes, timelines, and required documentation.\n\n* **Review company emails and announcements:**  Keep an eye out for company-wide communications that may announce internal job openings or provide updates on career development programs.\n\nWe apologize for the inconvenience caused by the lack of readily available information. We are working to improve the accessibility of our internal resources.  Please don't hesitate to contact us again if you have further questions or require additional assistance.\n\n\nSincerely,\n\nMaestro Support\n",
     "response_at": "2025-06-15T15:24:35.099896"
+  },
+  {
+    "id": "c4e063d5",
+    "user": "alex01",
+    "category": "Technical Issue",
+    "priority": "High",
+    "subject": "MLops Query",
+    "description": "I need help with  deploying machine learning models",
+    "status": "Responded",
+    "created_at": "2025-06-15T15:52:48.351393",
+    "updated_at": "2025-06-15T15:52:54.015494",
+    "response": "Thank you for your support ticket. I understand you need help deploying machine learning models.\n\nUnfortunately, the available documentation does not contain information on deploying machine learning models.  The documents only provide a general definition of machine learning and therefore cannot assist with your request.\n\nTo help you further, I will need access to additional resources that cover the following topics:\n\n* Step-by-step deployment guides for various model types.\n* Best practices for reliable and scalable model deployment.\n* Overview of relevant deployment tools and platforms.\n* Troubleshooting tips for common deployment issues.\n\n\nPlease provide these resources, or let me know if you have any other questions.  I apologize for the inconvenience caused by the lack of information in the current documentation.\n",
+    "response_at": "2025-06-15T15:52:54.015482"
+  },
+  {
+    "id": "2865bfef",
+    "user": "melanie",
+    "category": "Technical Issue",
+    "priority": "Medium",
+    "subject": "TicketSSSSSSSSSSSSS",
+    "description": "I need help with  deploying machine learning models",
+    "status": "Responded",
+    "created_at": "2025-06-15T16:05:02.519021",
+    "updated_at": "2025-06-15T16:05:07.123823",
+    "response": "I couldn't find a direct answer in our knowledge base for your request, but I can help connect you with the right expert.\n\n\ud83d\udc64 **Alex Johnson** (@alex01)\n\ud83c\udfe2 **Role**: Machine Learning Engineer\n\ud83d\udcbc **Expertise**: Python, Deep Learning, NLP, PyTorch, MLOps\n\ud83d\udccb **Responsibilities**: Develop and optimize ML models\n\nDeploy models to production\n\nMaintain ML pipelines\n\nCollaborate on data strategy\n\ud83d\udfe2 **Status**: Available\n\nThis employee has the expertise to help with your request.\n\nPlease reach out to them directly - they'll be able to provide specialized assistance with your specific issue.",
+    "response_at": "2025-06-15T16:05:07.123818"
   }
 ]

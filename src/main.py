@@ -9,8 +9,9 @@ from dotenv import load_dotenv
 from langfuse import observe
 
 from config.config_loader import config_loader
-from agents.base_agent import MaestroAgent, DataGuardianAgent
+from agents.base_agent import MaestroAgent, DataGuardianAgent, HRAgent
 from tools.custom_tools import DocumentAnalysisTool, CalculatorTool
+from tools.availability_tool import AvailabilityTool
 from vectorstore.vector_manager import VectorStoreManager
 from graphs.workflow import MultiAgentWorkflow
 from evaluation.llm_evaluator import LLMEvaluator
@@ -78,9 +79,13 @@ class AISystem:
             DocumentAnalysisTool()
         ]
         
+        # Initialize availability tool for HR Agent
+        availability_tool = AvailabilityTool()
+        
         return {
             "maestro": MaestroAgent(config=self.config, tools=maestro_tools),
-            "data_guardian": DataGuardianAgent(config=self.config, tools=data_guardian_tools, vector_manager=self.vector_manager)
+            "data_guardian": DataGuardianAgent(config=self.config, tools=data_guardian_tools, vector_manager=self.vector_manager),
+            "hr_agent": HRAgent(config=self.config, tools=[], availability_tool=availability_tool)
         }
     
     def _load_raw_documents(self):
