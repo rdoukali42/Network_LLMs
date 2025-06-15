@@ -142,8 +142,11 @@ class MultiAgentWorkflow:
         if "hr_agent" in self.agents:
             hr_result = self.agents["hr_agent"].run({"query": query})
             state["results"]["hr_agent"] = hr_result.get("result", "No employee found")
+            state["results"]["hr_action"] = hr_result.get("action", "no_assignment")
+            state["results"]["employee_data"] = hr_result.get("employee_data", None)
         else:
             state["results"]["hr_agent"] = "HR Agent not available"
+            state["results"]["hr_action"] = "no_assignment"
         
         return state
     

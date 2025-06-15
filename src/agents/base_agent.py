@@ -439,19 +439,22 @@ class HRAgent(BaseAgent):
                 }
             
             # Find best match
-            best_match = self._find_best_employee_match(query, available_employees)
+            best_match_data = self._find_best_employee_match(query, available_employees)
             
-            if best_match:
+            if best_match_data:
                 return {
                     "agent": self.name,
                     "status": "success",
-                    "result": best_match,
+                    "action": "assign",
+                    "employee_data": best_match_data,
+                    "result": self._format_employee_recommendation(best_match_data),
                     "query": query
                 }
             else:
                 return {
                     "agent": self.name,
                     "status": "success",
+                    "action": "no_assignment",
                     "result": "No suitable employees available at the moment",
                     "query": query
                 }
@@ -464,7 +467,7 @@ class HRAgent(BaseAgent):
                 "result": f"HR Agent failed: {e}"
             }
     
-    def _find_best_employee_match(self, query: str, available_employees: Dict) -> str:
+    def _find_best_employee_match(self, query: str, available_employees: Dict) -> Dict:
         """Find the best employee match for the query."""
         # Combine available and busy employees (busy can handle urgent issues)
         candidates = available_employees["available"] + available_employees["busy"]
@@ -502,12 +505,11 @@ class HRAgent(BaseAgent):
         scored_candidates.sort(key=lambda x: x[0], reverse=True)
         
         if scored_candidates[0][0] > 0:  # At least some relevance
-            best_employee = scored_candidates[0][1]
-            return self._format_employee_recommendation(best_employee)
+            return scored_candidates[0][1]
         else:
             # Return first available if no keyword matches
             if scored_candidates:
-                return self._format_employee_recommendation(scored_candidates[0][1])
+                return scored_candidates[0][1]
             return None
     
     def _format_employee_recommendation(self, employee: Dict) -> str:

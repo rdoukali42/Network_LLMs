@@ -177,13 +177,53 @@ def show_registration_form():
 
 def show_employee_list():
     """Display list of registered employees (admin view)."""
-    st.markdown("### 👥 Registered Employees")
+    # Header with refresh button
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        st.markdown("### 👥 Registered Employees")
+    with col2:
+        if st.button("🔄 Refresh Status", key="refresh_employee_status", help="Refresh to see latest availability status"):
+            st.rerun()
     
     employees = db_manager.get_all_employees()
     
     if not employees:
         st.info("No employees registered yet.")
         return
+    
+    # Auto-cleanup expired statuses before displaying
+    db_manager.auto_cleanup_expired_statuses()
+    
+    # Show availability status summary
+    status_counts = {
+        'Available': 0,
+        'In Meeting': 0,
+        'Busy': 0,
+        'Do Not Disturb': 0,
+        'Offline': 0
+    }
+    
+    for employee in employees:
+        availability = db_manager.get_employee_availability(employee['username'])
+        current_status = availability.get('availability_status', 'Offline') if availability else 'Offline'
+        status_counts[current_status] += 1
+    
+    # Display status summary
+    st.markdown("#### 📊 Live Availability Summary")
+    col1, col2, col3, col4, col5 = st.columns(5)
+    
+    with col1:
+        st.metric("🟢 Available", status_counts['Available'])
+    with col2:
+        st.metric("🟡 Busy", status_counts['Busy'])
+    with col3:
+        st.metric("🔴 In Meeting", status_counts['In Meeting'])
+    with col4:
+        st.metric("🔴 Do Not Disturb", status_counts['Do Not Disturb'])
+    with col5:
+        st.metric("⚫ Offline", status_counts['Offline'])
+    
+    st.markdown("---")
     
     # Search functionality
     search_term = st.text_input("🔍 Search employees", placeholder="Search by name, role, or expertise...")
@@ -194,16 +234,59 @@ def show_employee_list():
             st.warning(f"No employees found matching '{search_term}'")
             return
     
-    # Display employee cards
+    # Auto-cleanup expired statuses before displaying
+    db_manager.auto_cleanup_expired_statuses()
+    
+    # Display employee cards with live availability status
     for employee in employees:
-        with st.expander(f"👤 {employee['full_name']} - {employee['role_in_company']}", expanded=False):
+        # Get current availability status
+        availability = db_manager.get_employee_availability(employee['username'])
+        current_status = availability.get('availability_status', 'Offline') if availability else 'Offline'
+        
+        # Status LED indicators
+        status_indicators = {
+            'Available': '🟢',
+            'In Meeting': '🔴', 
+            'Busy': '🟡',
+            'Do Not Disturb': '🔴',
+            'Offline': '⚫'
+        }
+        
+        status_led = status_indicators.get(current_status, '⚫')
+        
+        # Enhanced expander title with live status
+        expander_title = f"{status_led} {employee['full_name']} - {employee['role_in_company']} | {current_status}"
+        
+        with st.expander(expander_title, expanded=False):
             col1, col2 = st.columns(2)
             
             with col1:
                 st.write(f"**Username:** {employee['username']}")
                 st.write(f"**Role:** {employee['role_in_company']}")
-                st.write(f"**Status:** {'✅ Active' if employee['is_active'] else '❌ Inactive'}")
+                st.write(f"**Account Status:** {'✅ Active' if employee['is_active'] else '❌ Inactive'}")
                 st.write(f"**Registered:** {employee['created_at'][:10]}")
+                
+                # Live availability status section
+                st.markdown("---")
+                st.write(f"**Live Status:** {status_led} **{current_status}**")
+                
+                if availability:
+                    if availability.get('last_seen'):
+                        try:
+                            from datetime import datetime
+                            last_seen = datetime.fromisoformat(availability['last_seen'])
+                            st.write(f"**Last Seen:** {last_seen.strftime('%Y-%m-%d %H:%M')}")
+                        except:
+                            st.write(f"**Last Seen:** {availability['last_seen'][:16]}")
+                    
+                    if availability.get('available_until') and current_status == 'In Meeting':
+                        try:
+                            until_time = datetime.fromisoformat(availability['available_until'])
+                            st.write(f"**Available Until:** {until_time.strftime('%Y-%m-%d %H:%M')}")
+                        except:
+                            st.write(f"**Available Until:** {availability['available_until'][:16]}")
+                else:
+                    st.write("**Last Seen:** Never logged in")
             
             with col2:
                 st.write(f"**Expertise:**")

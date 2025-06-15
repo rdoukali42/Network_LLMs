@@ -131,7 +131,12 @@ class TicketManager:
             "created_at": datetime.now().isoformat(),
             "updated_at": datetime.now().isoformat(),
             "response": None,
-            "response_at": None
+            "response_at": None,
+            "assigned_to": None,
+            "assignment_status": None,
+            "assignment_date": None,
+            "employee_solution": None,
+            "completion_date": None
         }
         
         tickets.append(ticket)
@@ -162,14 +167,45 @@ class TicketManager:
                 ticket["updated_at"] = datetime.now().isoformat()
                 break
         self.save_tickets(tickets)
+    
+    def assign_ticket(self, ticket_id: str, employee_username: str):
+        """Assign ticket to an employee."""
+        tickets = self.load_tickets()
+        for ticket in tickets:
+            if ticket["id"] == ticket_id:
+                ticket["assigned_to"] = employee_username
+                ticket["assignment_status"] = "assigned"
+                ticket["assignment_date"] = datetime.now().isoformat()
+                ticket["status"] = "Assigned"
+                ticket["updated_at"] = datetime.now().isoformat()
+                break
+        self.save_tickets(tickets)
+    
+    def update_employee_solution(self, ticket_id: str, solution: str):
+        """Update ticket with employee solution."""
+        tickets = self.load_tickets()
+        for ticket in tickets:
+            if ticket["id"] == ticket_id:
+                ticket["employee_solution"] = solution
+                ticket["assignment_status"] = "completed"
+                ticket["completion_date"] = datetime.now().isoformat()
+                ticket["status"] = "Solved"
+                ticket["updated_at"] = datetime.now().isoformat()
+                break
+        self.save_tickets(tickets)
+    
+    def get_assigned_tickets(self, employee_username: str) -> List[Dict]:
+        """Get tickets assigned to an employee."""
+        tickets = self.load_tickets()
+        return [t for t in tickets if t.get("assigned_to") == employee_username]
 
 def show_ticket_interface():
     """Display the main ticket interface."""
     # Render availability status in sidebar first
     render_availability_status()
     
-    # Header with user info and logout
-    col1, col2 = st.columns([3, 1])
+    # Header with user info and controls
+    col1, col2, col3 = st.columns([3, 0.7, 0.7])
     
     with col1:
         # Show enhanced user information
@@ -179,6 +215,10 @@ def show_ticket_interface():
         st.markdown(f"**Welcome {user_display}** | *{user_role}*")
     
     with col2:
+        if st.button("🔄 Refresh", use_container_width=True, help="Refresh to see latest tickets"):
+            st.rerun()
+    
+    with col3:
         if st.button("Logout", use_container_width=True):
             logout()
     
@@ -203,13 +243,23 @@ def show_ticket_interface():
         st.session_state.workflow_client = WorkflowClient()
     
     # Create tabs for different views
-    tab1, tab2 = st.tabs(["📝 Create Ticket", "📋 My Tickets"])
+    if st.session_state.username in [emp['username'] for emp in db_manager.get_all_employees()]:
+        # Employee view - show assigned tickets tab
+        tab1, tab2, tab3 = st.tabs(["📝 Create Ticket", "📋 My Tickets", "👨‍💼 Assigned to Me"])
+    else:
+        # Regular user view
+        tab1, tab2 = st.tabs(["📝 Create Ticket", "📋 My Tickets"])
     
     with tab1:
         show_create_ticket_form()
     
     with tab2:
         show_user_tickets()
+    
+    # Employee assigned tickets tab
+    if st.session_state.username in [emp['username'] for emp in db_manager.get_all_employees()]:
+        with tab3:
+            show_assigned_tickets()
 
 def show_create_ticket_form():
     """Display the ticket creation form."""
@@ -292,7 +342,25 @@ def process_ticket_with_ai(ticket_id: str, subject: str, description: str):
                     response = result
                 
             if response and response.strip():
-                # Update ticket with actual AI response
+                # Check if this is an HR referral that should become an assignment
+                if "👤" in response and "(@" in response and "🏢 **Role**:" in response:
+                    # Parse employee username from response
+                    username_match = response.split("(@")[1].split(")")[0] if "(@" in response else None
+                    
+                    if username_match:
+                        # Verify employee exists and assign ticket
+                        employee = db_manager.get_employee_by_username(username_match)
+                        if employee:
+                            st.session_state.ticket_manager.assign_ticket(ticket_id, username_match)
+                            
+                            # Create assignment message
+                            assignment_response = f"Your ticket has been assigned to {employee['full_name']} ({employee['role_in_company']}). They will work on your request and provide a solution soon."
+                            
+                            st.session_state.ticket_manager.update_ticket_response(ticket_id, assignment_response)
+                            st.success(f"✅ Ticket assigned to {employee['full_name']}!")
+                            return
+                
+                # Regular AI response
                 st.session_state.ticket_manager.update_ticket_response(ticket_id, response)
                 st.success("✨ AI response generated and added to your ticket!")
             else:
@@ -309,7 +377,13 @@ def process_ticket_with_ai(ticket_id: str, subject: str, description: str):
 
 def show_user_tickets():
     """Display user's tickets."""
-    st.markdown("### My Support Tickets")
+    # Header with refresh button
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        st.markdown("### My Support Tickets")
+    with col2:
+        if st.button("🔄 Refresh Tickets", key="refresh_user_tickets", help="Refresh to see latest ticket updates"):
+            st.rerun()
     
     tickets = st.session_state.ticket_manager.get_user_tickets(st.session_state.username)
     
@@ -333,7 +407,14 @@ def show_user_tickets():
                 st.write(f"**Created:** {format_datetime(ticket['created_at'])}")
             
             with col3:
-                if ticket['response_at']:
+                if ticket.get('assigned_to'):
+                    employee = db_manager.get_employee_by_username(ticket['assigned_to'])
+                    if employee:
+                        st.write(f"**Assigned to:** {employee['full_name']}")
+                        st.write(f"**Assignment Status:** {ticket.get('assignment_status', 'assigned').title()}")
+                    else:
+                        st.write(f"**Assigned to:** {ticket['assigned_to']}")
+                elif ticket['response_at']:
                     st.write(f"**Responded:** {format_datetime(ticket['response_at'])}")
                 else:
                     st.write("**Responded:** Pending")
@@ -341,11 +422,19 @@ def show_user_tickets():
             st.markdown("**Description:**")
             st.write(ticket['description'])
             
-            if ticket['response']:
+            if ticket.get('employee_solution'):
+                st.markdown("**Solution:**")
+                st.success(ticket['employee_solution'])
+            elif ticket['response']:
                 st.markdown("**AI Response:**")
                 st.info(ticket['response'])
             else:
-                st.warning("⏳ Waiting for response...")
+                if ticket.get('assigned_to'):
+                    employee = db_manager.get_employee_by_username(ticket['assigned_to'])
+                    employee_name = employee['full_name'] if employee else ticket['assigned_to']
+                    st.warning(f"⏳ {employee_name} is working on your ticket...")
+                else:
+                    st.warning("⏳ Waiting for response...")
 
 def format_datetime(datetime_str: str) -> str:
     """Format datetime string for display."""
@@ -354,3 +443,83 @@ def format_datetime(datetime_str: str) -> str:
         return dt.strftime("%Y-%m-%d %H:%M")
     except:
         return datetime_str
+
+def show_assigned_tickets():
+    """Display tickets assigned to the current employee."""
+    # Header with refresh button
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        st.markdown("### 👨‍💼 Tickets Assigned to Me")
+    with col2:
+        if st.button("🔄 Refresh Assignments", key="refresh_assigned_tickets", help="Refresh to see new ticket assignments"):
+            st.rerun()
+    
+    assigned_tickets = st.session_state.ticket_manager.get_assigned_tickets(st.session_state.username)
+    
+    if not assigned_tickets:
+        st.info("No tickets are currently assigned to you.")
+        return
+    
+    # Sort tickets by assignment date (newest first)
+    assigned_tickets.sort(key=lambda x: x.get("assignment_date", ""), reverse=True)
+    
+    for ticket in assigned_tickets:
+        status_color = {
+            "assigned": "🟡",
+            "in_progress": "🔵", 
+            "completed": "🟢"
+        }.get(ticket.get("assignment_status", "assigned"), "⚪")
+        
+        with st.expander(f"{status_color} [{ticket['id']}] {ticket['subject']} - {ticket.get('assignment_status', 'assigned').title()}", expanded=False):
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.write(f"**From:** {ticket['user']}")
+                st.write(f"**Category:** {ticket['category']}")
+                st.write(f"**Priority:** {ticket['priority']}")
+                st.write(f"**Assigned:** {format_datetime(ticket.get('assignment_date', ''))}")
+            
+            with col2:
+                st.write(f"**Status:** {ticket.get('assignment_status', 'assigned').title()}")
+                if ticket.get('completion_date'):
+                    st.write(f"**Completed:** {format_datetime(ticket['completion_date'])}")
+            
+            st.markdown("**Description:**")
+            st.write(ticket['description'])
+            
+            # Solution form for employees
+            if ticket.get('assignment_status') != 'completed':
+                st.markdown("**Provide Solution:**")
+                solution_key = f"solution_{ticket['id']}"
+                solution = st.text_area(
+                    "Your solution:",
+                    placeholder="Provide a detailed solution to the user's issue...",
+                    height=150,
+                    key=solution_key
+                )
+                
+                col1, col2 = st.columns(2)
+                with col1:
+                    if st.button(f"Submit Solution", key=f"submit_{ticket['id']}"):
+                        if solution.strip():
+                            st.session_state.ticket_manager.update_employee_solution(ticket['id'], solution.strip())
+                            st.success("✅ Solution submitted successfully!")
+                            st.rerun()
+                        else:
+                            st.error("Please provide a solution before submitting.")
+                
+                with col2:
+                    if st.button(f"Mark In Progress", key=f"progress_{ticket['id']}"):
+                        # Update assignment status to in_progress
+                        tickets = st.session_state.ticket_manager.load_tickets()
+                        for t in tickets:
+                            if t["id"] == ticket['id']:
+                                t["assignment_status"] = "in_progress"
+                                t["updated_at"] = datetime.now().isoformat()
+                                break
+                        st.session_state.ticket_manager.save_tickets(tickets)
+                        st.success("✅ Ticket marked as in progress!")
+                        st.rerun()
+            else:
+                st.markdown("**Your Solution:**")
+                st.success(ticket.get('employee_solution', 'No solution provided'))
