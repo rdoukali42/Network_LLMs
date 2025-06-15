@@ -49,6 +49,21 @@ class DatabaseManager:
                 )
             """)
             
+            # Create call notifications table
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS call_notifications (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    target_employee VARCHAR(50) NOT NULL,
+                    ticket_id VARCHAR(50) NOT NULL,
+                    ticket_subject TEXT NOT NULL,
+                    caller_name TEXT NOT NULL,
+                    call_info JSON NOT NULL,
+                    status TEXT DEFAULT 'pending',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (target_employee) REFERENCES employees_data_table(username)
+                )
+            """)
+            
             # Create indexes for better performance
             conn.execute("CREATE INDEX IF NOT EXISTS idx_username ON employees_data_table(username)")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_role ON employees_data_table(role_in_company)")
@@ -81,6 +96,24 @@ class DatabaseManager:
                 # Update existing records with current timestamp
                 conn.execute("UPDATE employees_data_table SET last_seen = CURRENT_TIMESTAMP WHERE last_seen IS NULL")
                 print("✅ Added last_seen column")
+            
+            # Check if call_notifications table exists
+            cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='call_notifications'")
+            if not cursor.fetchone():
+                conn.execute("""
+                    CREATE TABLE call_notifications (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        target_employee VARCHAR(50) NOT NULL,
+                        ticket_id VARCHAR(50) NOT NULL,
+                        ticket_subject TEXT NOT NULL,
+                        caller_name TEXT NOT NULL,
+                        call_info JSON NOT NULL,
+                        status TEXT DEFAULT 'pending',
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (target_employee) REFERENCES employees_data_table(username)
+                    )
+                """)
+                print("✅ Added call_notifications table")
     
     def create_employee(self, username: str, full_name: str, role_in_company: str, 
                        job_description: str, expertise: str, responsibilities: str) -> Tuple[bool, str]:
@@ -372,7 +405,73 @@ class DatabaseManager:
         except sqlite3.Error as e:
             print(f"Database error: {e}")
             return []
-
+        
+    def create_call_notification(self, target_employee: str, ticket_id: str, ticket_subject: str, 
+                                caller_name: str, call_info: Dict) -> bool:
+        """Create a new call notification for an employee."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.execute("""
+                    INSERT INTO call_notifications 
+                    (target_employee, ticket_id, ticket_subject, caller_name, call_info)
+                    VALUES (?, ?, ?, ?, ?)
+                """, (target_employee, ticket_id, ticket_subject, caller_name, json.dumps(call_info)))
+                conn.commit()
+                return True
+        except sqlite3.Error as e:
+            print(f"Error creating call notification: {e}")
+            return False
+    
+    def get_pending_calls(self, employee_username: str) -> List[Dict]:
+        """Get all pending call notifications for an employee."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.execute("""
+                    SELECT * FROM call_notifications 
+                    WHERE target_employee = ? AND status = 'pending'
+                    ORDER BY created_at DESC
+                """, (employee_username,))
+                
+                calls = []
+                for row in cursor.fetchall():
+                    call = dict(row)
+                    call['call_info'] = json.loads(call['call_info'])
+                    calls.append(call)
+                return calls
+                
+        except sqlite3.Error as e:
+            print(f"Error getting pending calls: {e}")
+            return []
+    
+    def update_call_status(self, call_id: int, status: str) -> bool:
+        """Update the status of a call notification."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.execute("""
+                    UPDATE call_notifications 
+                    SET status = ? 
+                    WHERE id = ?
+                """, (status, call_id))
+                conn.commit()
+                return True
+        except sqlite3.Error as e:
+            print(f"Error updating call status: {e}")
+            return False
+    
+    def clear_old_calls(self, hours: int = 24) -> bool:
+        """Clear call notifications older than specified hours."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.execute("""
+                    DELETE FROM call_notifications 
+                    WHERE created_at < datetime('now', '-{} hours')
+                """.format(hours))
+                conn.commit()
+                return True
+        except sqlite3.Error as e:
+            print(f"Error clearing old calls: {e}")
+            return False
 
 # Singleton instance for easy access
 db_manager = DatabaseManager()

@@ -56,8 +56,46 @@ def render_availability_status():
     # Display current status
     st.sidebar.markdown(f"**Current:** {status_colors.get(current_status, '⚫')} {current_status}")
     
-    # Status selection (only for registered employees)
+    # Check for pending calls from database (for ASSIGNED EMPLOYEES)
     employee = db_manager.get_employee_by_username(username)
+    if employee:
+        pending_calls = db_manager.get_pending_calls(username)
+        
+        if pending_calls:
+            # Show the most recent pending call
+            call = pending_calls[0]
+            call_info = call['call_info']
+            
+            st.sidebar.markdown("---")
+            st.sidebar.markdown("### 📞 Incoming Call")
+            st.sidebar.markdown(f"**From:** {call_info.get('caller_name', 'Unknown User')}")
+            st.sidebar.markdown(f"**Ticket:** {call['ticket_subject']}")
+            st.sidebar.markdown(f"**Ticket ID:** {call['ticket_id']}")
+            
+            # Answer call button
+            if st.sidebar.button("📞 Answer Call", type="primary", use_container_width=True):
+                # Set up call in session state
+                st.session_state.call_active = True
+                st.session_state.call_info = call_info
+                st.session_state.conversation_history = []
+                
+                # Mark call as answered in database
+                db_manager.update_call_status(call['id'], 'answered')
+                
+                # Initialize vocal chat
+                if 'vocal_chat' not in st.session_state:
+                    from vocal_components import SmoothVocalChat
+                    st.session_state.vocal_chat = SmoothVocalChat()
+                
+                st.rerun()
+            
+            # Reject call button
+            if st.sidebar.button("📴 Decline", use_container_width=True):
+                # Mark call as declined in database
+                db_manager.update_call_status(call['id'], 'declined')
+                st.rerun()
+    
+    # Status selection (only for registered employees)
     if employee:
         status_options = ['Available', 'In Meeting', 'Busy', 'Do Not Disturb']
         selected_status = st.sidebar.selectbox(
@@ -233,14 +271,30 @@ def show_ticket_interface():
         from registration import show_employee_management
         show_employee_management()
         return
-    
-    # Initialize ticket manager
+     # Initialize ticket manager
     if "ticket_manager" not in st.session_state:
         st.session_state.ticket_manager = TicketManager()
-    
+
     # Initialize workflow client
     if "workflow_client" not in st.session_state:
         st.session_state.workflow_client = WorkflowClient()
+    
+    # Initialize voice call session states
+    if "incoming_call" not in st.session_state:
+        st.session_state.incoming_call = False
+    if "call_active" not in st.session_state:
+        st.session_state.call_active = False
+    if "call_info" not in st.session_state:
+        st.session_state.call_info = None
+    if "conversation_history" not in st.session_state:
+        st.session_state.conversation_history = []
+    if "vocal_chat" not in st.session_state:
+        st.session_state.vocal_chat = None
+    
+    # Show active call interface if call is in progress
+    if st.session_state.call_active and st.session_state.call_info:
+        show_active_call_interface()
+        return
     
     # Create tabs for different views
     if st.session_state.username in [emp['username'] for emp in db_manager.get_all_employees()]:
@@ -353,11 +407,39 @@ def process_ticket_with_ai(ticket_id: str, subject: str, description: str):
                         if employee:
                             st.session_state.ticket_manager.assign_ticket(ticket_id, username_match)
                             
-                            # Create assignment message
-                            assignment_response = f"Your ticket has been assigned to {employee['full_name']} ({employee['role_in_company']}). They will work on your request and provide a solution soon."
-                            
-                            st.session_state.ticket_manager.update_ticket_response(ticket_id, assignment_response)
-                            st.success(f"✅ Ticket assigned to {employee['full_name']}!")
+                            # Trigger voice call with Vocal Assistant
+                            ticket_data = st.session_state.ticket_manager.get_ticket_by_id(ticket_id)
+                            if ticket_data:
+                                # Store call notification for the ASSIGNED EMPLOYEE
+                                call_info = {
+                                    "ticket_id": ticket_id,
+                                    "employee_name": employee['full_name'],
+                                    "employee_username": username_match,
+                                    "ticket_subject": subject,
+                                    "ticket_data": ticket_data,
+                                    "employee_data": employee,
+                                    "caller_name": st.session_state.username,
+                                    "created_by": st.session_state.username
+                                }
+                                
+                                # Create call notification in database for the assigned employee
+                                success = db_manager.create_call_notification(
+                                    target_employee=username_match,  # The ASSIGNED employee gets the call
+                                    ticket_id=ticket_id,
+                                    ticket_subject=subject,
+                                    caller_name=st.session_state.username,
+                                    call_info=call_info
+                                )
+                                
+                                if success:
+                                    assignment_response = f"Your ticket has been assigned to {employee['full_name']} ({employee['role_in_company']}). A voice call notification has been sent to {employee['full_name']}."
+                                    st.session_state.ticket_manager.update_ticket_response(ticket_id, assignment_response)
+                                    st.success(f"✅ Ticket assigned to {employee['full_name']}! Voice call notification sent.")
+                                    st.info(f"📞 {employee['full_name']} will see an incoming call notification when they log in.")
+                                else:
+                                    assignment_response = f"Your ticket has been assigned to {employee['full_name']} ({employee['role_in_company']}). Please contact them directly."
+                                    st.session_state.ticket_manager.update_ticket_response(ticket_id, assignment_response)
+                                    st.warning("Ticket assigned but call notification failed.")
                             return
                 
                 # Regular AI response
@@ -523,3 +605,211 @@ def show_assigned_tickets():
             else:
                 st.markdown("**Your Solution:**")
                 st.success(ticket.get('employee_solution', 'No solution provided'))
+
+def show_active_call_interface():
+    """Display the active voice call interface."""
+    call_info = st.session_state.call_info
+    
+    # Add custom CSS for call interface
+    st.markdown("""
+    <style>
+    .call-interface {
+        background: linear-gradient(90deg, #28a745, #20c997);
+        color: white;
+        padding: 20px;
+        border-radius: 10px;
+        text-align: center;
+        margin-bottom: 30px;
+        animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.8; }
+        100% { opacity: 1; }
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    # Call header with animation
+    st.markdown(f"""
+    <div class='call-interface'>
+        <h2>📞 Active Call</h2>
+        <p><strong>Employee:</strong> {call_info.get('employee_name', 'Unknown')}</p>
+        <p><strong>Ticket:</strong> {call_info.get('ticket_subject', 'No subject')}</p>
+        <p><strong>Ticket ID:</strong> {call_info.get('ticket_id', 'Unknown')}</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Play ringtone sound when call starts
+    if "call_sound_played" not in st.session_state:
+        ringtone_path = Path(__file__).parent.parent / "media" / "old_phone.mp3"
+        if ringtone_path.exists():
+            try:
+                with open(ringtone_path, "rb") as audio_file:
+                    audio_bytes = audio_file.read()
+                import base64
+                audio_base64 = base64.b64encode(audio_bytes).decode()
+                
+                st.markdown(f"""
+                <audio autoplay>
+                    <source src="data:audio/mp3;base64,{audio_base64}" type="audio/mp3">
+                </audio>
+                """, unsafe_allow_html=True)
+                st.session_state.call_sound_played = True
+            except Exception as e:
+                print(f"Could not play ringtone: {e}")
+    
+    # Initialize vocal chat if not exists
+    if not st.session_state.vocal_chat:
+        from vocal_components import SmoothVocalChat
+        st.session_state.vocal_chat = SmoothVocalChat()
+    
+    # Voice interface
+    st.markdown("### 🎤 Voice Conversation")
+    st.markdown("Speak into the microphone to discuss the ticket with the employee.")
+    
+    # Import audio recorder
+    try:
+        from audio_recorder_streamlit import audio_recorder
+        
+        # Audio recorder
+        audio_bytes = audio_recorder(
+            text="Click to record",
+            recording_color="#ff4444",
+            neutral_color="#28a745",
+            icon_name="microphone",
+            icon_size="3x",
+            pause_threshold=2.0,
+            sample_rate=41000,
+            key="call_audio_recorder"
+        )
+        
+        # Process audio input
+        if audio_bytes:
+            audio_hash = hash(audio_bytes)
+            last_hash = st.session_state.get('last_call_audio_hash', None)
+            
+            if audio_hash != last_hash:
+                st.session_state.last_call_audio_hash = audio_hash
+                
+                with st.spinner("🔄 Processing voice input..."):
+                    # Get ticket and employee data
+                    ticket_data = call_info.get('ticket_data', {})
+                    employee_data = call_info.get('employee_data', {})
+                    
+                    # Process voice input
+                    transcription, response, tts_audio_bytes = st.session_state.vocal_chat.process_voice_input(
+                        audio_bytes, 
+                        ticket_data, 
+                        employee_data, 
+                        st.session_state.conversation_history
+                    )
+                    
+                    if transcription and response:
+                        # Add to conversation history
+                        st.session_state.conversation_history.append(("You", transcription))
+                        st.session_state.conversation_history.append(("Employee", response))
+                        
+                        # Show transcription
+                        st.success(f"**You said:** {transcription}")
+                        st.info(f"**Employee:** {response}")
+                        
+                        # Play employee response
+                        if tts_audio_bytes:
+                            st.audio(tts_audio_bytes, format='audio/mp3', autoplay=True)
+                            
+    except ImportError:
+        st.error("Audio recording not available. Please install audio_recorder_streamlit.")
+        st.code("pip install audio_recorder_streamlit")
+    
+    # Conversation history
+    if st.session_state.conversation_history:
+        st.markdown("### 📝 Conversation History")
+        with st.expander("View conversation", expanded=False):
+            for speaker, message in st.session_state.conversation_history:
+                icon = "🎧" if speaker == "You" else "👨‍💼"
+                st.markdown(f"**{icon} {speaker}:** {message}")
+    
+    # Call controls
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        if st.button("📴 End Call", type="secondary", use_container_width=True):
+            # Generate solution from conversation
+            if st.session_state.conversation_history:
+                generate_solution_from_call()
+            else:
+                st.session_state.call_active = False
+                st.session_state.call_info = None
+                st.session_state.conversation_history = []
+                st.rerun()
+    
+    with col2:
+        if st.button("⏸️ Hold Call", use_container_width=True):
+            st.info("Call placed on hold. Use the sidebar to resume.")
+            st.session_state.call_active = False
+            # Keep call_info for resuming
+            st.rerun()
+    
+    with col3:
+        if st.button("📋 View Ticket", use_container_width=True):
+            # Show ticket details
+            ticket_data = call_info.get('ticket_data', {})
+            if ticket_data:
+                st.markdown("### 🎫 Ticket Details")
+                st.write(f"**Subject:** {ticket_data.get('subject', 'N/A')}")
+                st.write(f"**Description:** {ticket_data.get('description', 'N/A')}")
+                st.write(f"**Priority:** {ticket_data.get('priority', 'N/A')}")
+                st.write(f"**Category:** {ticket_data.get('category', 'N/A')}")
+
+def generate_solution_from_call():
+    """Generate a solution from the voice call conversation."""
+    if not st.session_state.conversation_history:
+        st.warning("No conversation to generate solution from.")
+        return
+    
+    try:
+        # Initialize vocal chat if needed
+        if not st.session_state.vocal_chat:
+            from vocal_components import SmoothVocalChat
+            st.session_state.vocal_chat = SmoothVocalChat()
+        
+        call_info = st.session_state.call_info
+        ticket_data = call_info.get('ticket_data', {})
+        employee_data = call_info.get('employee_data', {})
+        
+        # Generate solution from conversation
+        conversation_summary = "\n".join([f"{speaker}: {message}" for speaker, message in st.session_state.conversation_history])
+        
+        with st.spinner("🔄 Generating solution from conversation..."):
+            solution = st.session_state.vocal_chat.gemini.chat(
+                f"Generate a professional ticket resolution based on this conversation: {conversation_summary}",
+                ticket_data,
+                employee_data,
+                is_employee=False
+            )
+        
+        if solution:
+            # Update ticket with solution
+            ticket_id = call_info.get('ticket_id')
+            if ticket_id:
+                st.session_state.ticket_manager.update_employee_solution(ticket_id, solution)
+                st.success("✅ Solution generated and saved to ticket!")
+                
+                # Show the solution
+                st.markdown("### 📝 Generated Solution")
+                st.success(solution)
+            else:
+                st.error("Could not save solution: No ticket ID found.")
+        else:
+            st.error("Failed to generate solution from conversation.")
+    
+    except Exception as e:
+        st.error(f"Error generating solution: {str(e)}")
+    
+    finally:
+        # End the call
+        st.session_state.call_active = False
+        st.session_state.call_info = None
+        st.session_state.conversation_history = []
+        st.rerun()
