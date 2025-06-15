@@ -8,7 +8,7 @@ import sys
 import json
 import uuid
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 
 # Add paths for imports
@@ -19,9 +19,76 @@ sys.path.insert(0, str(front_dir))
 
 from auth import logout
 from workflow_client import WorkflowClient
+from database import db_manager
 
 # Ticket storage file
 TICKETS_FILE = Path(__file__).parent / "tickets.json"
+
+
+def render_availability_status():
+    """Render availability status interface in sidebar."""
+    if 'username' not in st.session_state:
+        return
+    
+    username = st.session_state.username
+    
+    # Auto-cleanup expired statuses
+    db_manager.auto_cleanup_expired_statuses()
+    
+    # Update last seen
+    db_manager.update_last_seen(username)
+    
+    # Get current status
+    availability = db_manager.get_employee_availability(username)
+    current_status = availability.get('availability_status', 'Offline') if availability else 'Offline'
+    
+    st.sidebar.markdown("### 🔄 Availability Status")
+    
+    # Status colors
+    status_colors = {
+        'Available': '🟢',
+        'In Meeting': '🔴', 
+        'Busy': '🟡',
+        'Do Not Disturb': '🔴',
+        'Offline': '⚫'
+    }
+    
+    # Display current status
+    st.sidebar.markdown(f"**Current:** {status_colors.get(current_status, '⚫')} {current_status}")
+    
+    # Status selection (only for registered employees)
+    employee = db_manager.get_employee_by_username(username)
+    if employee:
+        status_options = ['Available', 'In Meeting', 'Busy', 'Do Not Disturb']
+        selected_status = st.sidebar.selectbox(
+            "Change Status:",
+            status_options,
+            index=status_options.index(current_status) if current_status in status_options else 0
+        )
+        
+        # Return time for "In Meeting"
+        until_time = None
+        if selected_status == 'In Meeting':
+            st.sidebar.markdown("**Return Time:**")
+            col1, col2 = st.sidebar.columns(2)
+            with col1:
+                hours = st.selectbox("Hours", range(1, 9), index=0, key="hours")
+            with col2:
+                minutes = st.selectbox("Minutes", [0, 15, 30, 45], index=0, key="minutes")
+            
+            until_time = (datetime.now() + timedelta(hours=hours, minutes=minutes)).isoformat()
+        
+        # Update status button
+        if st.sidebar.button("Update Status", type="primary"):
+            success, message = db_manager.update_employee_status(username, selected_status, until_time)
+            if success:
+                st.sidebar.success(message)
+                st.rerun()
+            else:
+                st.sidebar.error(message)
+    else:
+        st.sidebar.info("Register as employee to set availability status")
+
 
 class TicketManager:
     """Manages ticket operations."""
@@ -98,6 +165,9 @@ class TicketManager:
 
 def show_ticket_interface():
     """Display the main ticket interface."""
+    # Render availability status in sidebar first
+    render_availability_status()
+    
     # Header with user info and logout
     col1, col2 = st.columns([3, 1])
     

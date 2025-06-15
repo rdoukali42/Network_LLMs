@@ -40,6 +40,9 @@ class DatabaseManager:
                     job_description TEXT NOT NULL,
                     expertise TEXT NOT NULL,
                     responsibilities TEXT NOT NULL,
+                    availability_status TEXT DEFAULT 'Offline',
+                    status_until TIMESTAMP NULL,
+                    last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     is_active BOOLEAN DEFAULT TRUE
@@ -51,8 +54,33 @@ class DatabaseManager:
             conn.execute("CREATE INDEX IF NOT EXISTS idx_role ON employees_data_table(role_in_company)")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_active ON employees_data_table(is_active)")
             
+            # Run migration for existing databases
+            self._migrate_database()
+            
             conn.commit()
             print("✅ Employee database initialized")
+    
+    def _migrate_database(self):
+        """Migrate existing database to add availability columns."""
+        with sqlite3.connect(self.db_path) as conn:
+            # Check if availability columns exist
+            cursor = conn.execute("PRAGMA table_info(employees_data_table)")
+            columns = [column[1] for column in cursor.fetchall()]
+            
+            # Add missing availability columns
+            if 'availability_status' not in columns:
+                conn.execute("ALTER TABLE employees_data_table ADD COLUMN availability_status TEXT DEFAULT 'Offline'")
+                print("✅ Added availability_status column")
+            
+            if 'status_until' not in columns:
+                conn.execute("ALTER TABLE employees_data_table ADD COLUMN status_until TIMESTAMP NULL")
+                print("✅ Added status_until column")
+            
+            if 'last_seen' not in columns:
+                conn.execute("ALTER TABLE employees_data_table ADD COLUMN last_seen TIMESTAMP")
+                # Update existing records with current timestamp
+                conn.execute("UPDATE employees_data_table SET last_seen = CURRENT_TIMESTAMP WHERE last_seen IS NULL")
+                print("✅ Added last_seen column")
     
     def create_employee(self, username: str, full_name: str, role_in_company: str, 
                        job_description: str, expertise: str, responsibilities: str) -> Tuple[bool, str]:
@@ -200,6 +228,83 @@ class DatabaseManager:
         """Deactivate an employee (soft delete)."""
         return self.update_employee(username, is_active=False)
     
+    def update_employee_status(self, username: str, status: str, until_time: str = None) -> Tuple[bool, str]:
+        """Update employee availability status."""
+        try:
+            valid_statuses = ['Available', 'In Meeting', 'Busy', 'Do Not Disturb', 'Offline']
+            if status not in valid_statuses:
+                return False, f"Invalid status. Must be one of: {', '.join(valid_statuses)}"
+            
+            with sqlite3.connect(self.db_path) as conn:
+                conn.execute("""
+                    UPDATE employees_data_table 
+                    SET availability_status = ?, status_until = ?, last_seen = CURRENT_TIMESTAMP
+                    WHERE username = ?
+                """, (status, until_time, username))
+                
+                if conn.total_changes == 0:
+                    return False, f"Employee '{username}' not found"
+                
+                conn.commit()
+                return True, f"Status updated to '{status}'"
+                
+        except sqlite3.Error as e:
+            return False, f"Database error: {str(e)}"
+    
+    def update_last_seen(self, username: str) -> bool:
+        """Update employee's last seen timestamp."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.execute("""
+                    UPDATE employees_data_table 
+                    SET last_seen = CURRENT_TIMESTAMP
+                    WHERE username = ?
+                """, (username,))
+                conn.commit()
+                return True
+        except sqlite3.Error:
+            return False
+    
+    def get_employee_availability(self, username: str) -> Optional[Dict]:
+        """Get employee's current availability status."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.execute("""
+                    SELECT username, full_name, availability_status, status_until, last_seen
+                    FROM employees_data_table 
+                    WHERE username = ? AND is_active = TRUE
+                """, (username,))
+                
+                row = cursor.fetchone()
+                return dict(row) if row else None
+                
+        except sqlite3.Error:
+            return None
+    
+    def auto_cleanup_expired_statuses(self):
+        """Auto-cleanup expired statuses and set offline users."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                # Reset expired temporary statuses
+                conn.execute("""
+                    UPDATE employees_data_table 
+                    SET availability_status = 'Available', status_until = NULL
+                    WHERE status_until IS NOT NULL AND status_until < CURRENT_TIMESTAMP
+                """)
+                
+                # Set users offline if last_seen > 5 minutes ago
+                conn.execute("""
+                    UPDATE employees_data_table 
+                    SET availability_status = 'Offline'
+                    WHERE datetime(last_seen) < datetime('now', '-5 minutes')
+                    AND availability_status != 'Offline'
+                """)
+                
+                conn.commit()
+        except sqlite3.Error:
+            pass
+
     def get_employee_stats(self) -> Dict:
         """Get employee statistics."""
         try:

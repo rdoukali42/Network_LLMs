@@ -65,6 +65,8 @@ def show_login_interface():
                     st.session_state.employee_data = employee
                     st.session_state.user_full_name = employee['full_name']
                     st.session_state.user_role = employee['role_in_company']
+                    # Set status to Available on login
+                    db_manager.update_employee_status(username, 'Available')
                 else:
                     st.session_state.employee_data = None
                     st.session_state.user_full_name = username
@@ -111,6 +113,12 @@ def authenticate_user(username: str, password: str) -> bool:
 
 def logout():
     """Handle user logout."""
+    # Set user status to Offline before clearing session
+    if 'username' in st.session_state:
+        employee = db_manager.get_employee_by_username(st.session_state.username)
+        if employee:
+            db_manager.update_employee_status(st.session_state.username, 'Offline')
+    
     # Clear all session state
     keys_to_clear = [
         "authenticated", "username", "employee_data", 
