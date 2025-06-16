@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2025-06-16T00:00:00.000Z" agent="5.0" etag="xyz" version="21.6.5">
+  <diagram name="Simple Agents Tools Workflow" id="simple-workflow">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- Title -->
+        <mxCell id="title" value="Multi-Agent System: Agents and Tools" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=24;fontStyle=1;fontColor=#1f4e79;" vertex="1" parent="1">
+          <mxGeometry x="400" y="20" width="400" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Anna Voice Assistant -->
+        <mxCell id="anna-agent" value="Anna&#xa;Voice Assistant" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="120" width="120" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Anna Tools -->
+        <mxCell id="anna-tools" value="• Voice Recognition&#xa;• Speech Synthesis&#xa;• Conversation Management&#xa;• Call Interface&#xa;• Availability Tool" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;align=left;verticalAlign=top;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="50" y="200" width="180" height="100" as="geometry" />
+        </mxCell>
+        
+        <!-- Arrow from Anna to Tools -->
+        <mxCell id="anna-arrow" value="" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="anna-agent" target="anna-tools">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="140" y="180" as="sourcePoint" />
+            <mxPoint x="140" y="200" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Maestro Agent -->
+        <mxCell id="maestro-agent" value="Maestro&#xa;Email Assistant" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="320" y="120" width="120" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Maestro Tools -->
+        <mxCell id="maestro-tools" value="• Email Generation&#xa;• Response Formatting&#xa;• Professional Writing&#xa;• Context Analysis&#xa;• Template Management" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;align=left;verticalAlign=top;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="290" y="200" width="180" height="100" as="geometry" />
+        </mxCell>
+        
+        <!-- Arrow from Maestro to Tools -->
+        <mxCell id="maestro-arrow" value="" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="maestro-agent" target="maestro-tools">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="380" y="180" as="sourcePoint" />
+            <mxPoint x="380" y="200" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Evaluator Agent -->
+        <mxCell id="evaluator-agent" value="Evaluator&#xa;Quality Control" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="560" y="120" width="120" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Evaluator Tools -->
+        <mxCell id="evaluator-tools" value="• Response Analysis&#xa;• Quality Scoring&#xa;• Improvement Suggestions&#xa;• Performance Metrics&#xa;• Feedback System" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;align=left;verticalAlign=top;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="530" y="200" width="180" height="100" as="geometry" />
+        </mxCell>
+        
+        <!-- Arrow from Evaluator to Tools -->
+        <mxCell id="evaluator-arrow" value="" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="evaluator-agent" target="evaluator-tools">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="620" y="180" as="sourcePoint" />
+            <mxPoint x="620" y="200" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Ticket Manager Agent -->
+        <mxCell id="ticket-agent" value="Ticket Manager&#xa;System Orchestrator" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="800" y="120" width="120" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Ticket Manager Tools -->
+        <mxCell id="ticket-tools" value="• Ticket Processing&#xa;• Agent Coordination&#xa;• Database Management&#xa;• Status Tracking&#xa;• Smart Refresh" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;align=left;verticalAlign=top;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="770" y="200" width="180" height="100" as="geometry" />
+        </mxCell>
+        
+        <!-- Arrow from Ticket Manager to Tools -->
+        <mxCell id="ticket-arrow" value="" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="ticket-agent" target="ticket-tools">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="860" y="180" as="sourcePoint" />
+            <mxPoint x="860" y="200" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Workflow Arrows between Agents -->
+        <!-- Anna to Maestro -->
+        <mxCell id="anna-maestro" value="Voice Request" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=10;" edge="1" parent="1" source="anna-agent" target="maestro-agent">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="200" y="150" as="sourcePoint" />
+            <mxPoint x="320" y="150" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Maestro to Evaluator -->
+        <mxCell id="maestro-evaluator" value="Email Draft" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=10;" edge="1" parent="1" source="maestro-agent" target="evaluator-agent">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="440" y="150" as="sourcePoint" />
+            <mxPoint x="560" y="150" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Evaluator to Ticket Manager -->
+        <mxCell id="evaluator-ticket" value="Quality Check" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontSize=10;" edge="1" parent="1" source="evaluator-agent" target="ticket-agent">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="680" y="150" as="sourcePoint" />
+            <mxPoint x="800" y="150" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Ticket Manager coordination arrows (curved back) -->
+        <mxCell id="ticket-coordination" value="System Coordination" style="endArrow=classic;html=1;rounded=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;fontSize=10;curved=1;" edge="1" parent="1" source="ticket-agent" target="anna-agent">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="860" y="120" as="sourcePoint" />
+            <mxPoint x="140" y="120" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="860" y="80" />
+              <mxPoint x="500" y="60" />
+              <mxPoint x="140" y="80" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Central Workflow Box -->
+        <mxCell id="workflow-center" value="Multi-Agent Workflow&#xa;&#xa;1. User submits ticket via voice/text&#xa;2. Anna processes voice requests&#xa;3. Maestro generates email responses&#xa;4. Evaluator reviews quality&#xa;5. Ticket Manager coordinates system" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;align=left;verticalAlign=top;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="350" y="380" width="300" height="120" as="geometry" />
+        </mxCell>
+
+        <!-- Legend -->
+        <mxCell id="legend-title" value="Legend:" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="380" width="60" height="20" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="legend-agents" value="Agents" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="80" y="410" width="80" height="30" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="legend-tools" value="Tools" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="80" y="450" width="80" height="30" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="legend-workflow" value="Workflow" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="80" y="490" width="80" height="30" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

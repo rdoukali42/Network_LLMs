@@ -182,6 +182,7 @@ Original Ticket:
 Subject: {ticket_data.get('subject', 'No subject')}
 Description: {ticket_data.get('description', 'No description')}
 Priority: {ticket_data.get('priority', 'Medium')}
+User: {ticket_data.get('user', 'Unknown')}
 
 Employee Expert: {employee_data.get('full_name', 'Unknown')} ({employee_data.get('role_in_company', 'Employee')})
 
@@ -191,14 +192,15 @@ Voice Call Conversation Summary:
 Employee Solution:
 {initial_solution}
 
-Please provide a comprehensive final conclusion that:
-1. Reviews the employee's solution for completeness and clarity
-2. Adds any necessary context or technical insights
-3. Ensures the solution addresses all aspects of the original ticket
-4. Formats the response professionally for the customer
-5. Provides clear next steps if needed
+Create a concise, professional email response to the customer that:
+- Starts with "Subject: Re: {ticket_data.get('subject', 'No subject')}"
+- Uses a friendly greeting addressing the user by name
+- Provides a clear, direct answer based on what the employee explained
+- Includes one brief practical tip or advice if relevant
+- Credits the employee who helped (e.g., "This solution was suggested by [Employee Name], our [Role]")
+- Ends with "Best, Support Team"
 
-Create the final, comprehensive ticket resolution."""
+Keep the response SHORT and focused - no bullet points, no detailed steps, just a clear helpful answer in paragraph form."""
 
                 # Access MaestroAgent directly instead of going through full workflow
                 maestro_agent = st.session_state.workflow_client.system.agents.get("maestro")
