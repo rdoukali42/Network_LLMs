@@ -11,3 +11,7 @@ from tickets import show_ticket_interface
 def main():
     """Main entry point for the ticket system."""
     show_ticket_interface()
+
+
+# For backwards compatibility, expose the main function as the old interface name
+show_ticket_interface = show_ticket_interface
