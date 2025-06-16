@@ -7,6 +7,7 @@ import streamlit as st
 import sys
 import json
 import uuid
+import time
 from pathlib import Path
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
@@ -23,6 +24,182 @@ from database import db_manager
 
 # Ticket storage file
 TICKETS_FILE = Path(__file__).parent / "tickets.json"
+
+
+def init_smart_refresh():
+    """Initialize smart refresh monitoring system."""
+    if "smart_refresh_enabled" not in st.session_state:
+        st.session_state.smart_refresh_enabled = True
+    if "last_ticket_check" not in st.session_state:
+        st.session_state.last_ticket_check = time.time()
+    if "cached_ticket_state" not in st.session_state:
+        st.session_state.cached_ticket_state = {}
+    if "refresh_notifications" not in st.session_state:
+        st.session_state.refresh_notifications = []
+
+
+def get_ticket_state_signature():
+    """Get a signature of current ticket state for change detection."""
+    try:
+        tickets = st.session_state.ticket_manager.load_tickets()
+        username = st.session_state.username
+        
+        # Create signature for different ticket views
+        user_tickets = [t for t in tickets if t["user"] == username]
+        assigned_tickets = [t for t in tickets if t.get("assigned_to") == username]
+        
+        signature = {
+            "total_count": len(tickets),
+            "user_count": len(user_tickets),
+            "assigned_count": len(assigned_tickets),
+            "last_modified": max([t.get("updated_at", t.get("created_at", "")) for t in tickets] + [""]),
+            "user_last_modified": max([t.get("updated_at", t.get("created_at", "")) for t in user_tickets] + [""]),
+            "assigned_last_modified": max([t.get("updated_at", t.get("created_at", "")) for t in assigned_tickets] + [""]),
+        }
+        return signature
+    except Exception:
+        return {}
+
+
+def check_for_ticket_updates():
+    """Check for ticket updates without disrupting user experience."""
+    current_time = time.time()
+    
+    # Only check every 30 seconds to avoid performance issues
+    if current_time - st.session_state.last_ticket_check < 30:
+        return False
+    
+    # Don't check during sensitive operations
+    if should_skip_auto_refresh():
+        return False
+    
+    st.session_state.last_ticket_check = current_time
+    
+    # Get current ticket state
+    current_signature = get_ticket_state_signature()
+    cached_signature = st.session_state.cached_ticket_state
+    
+    # Compare signatures to detect changes
+    changes_detected = []
+    
+    if cached_signature:
+        if current_signature.get("user_count", 0) != cached_signature.get("user_count", 0):
+            changes_detected.append("user_tickets")
+        
+        if current_signature.get("assigned_count", 0) != cached_signature.get("assigned_count", 0):
+            changes_detected.append("assigned_tickets")
+        
+        if current_signature.get("user_last_modified", "") != cached_signature.get("user_last_modified", ""):
+            changes_detected.append("user_updates")
+        
+        if current_signature.get("assigned_last_modified", "") != cached_signature.get("assigned_last_modified", ""):
+            changes_detected.append("assigned_updates")
+    
+    # Update cached state
+    st.session_state.cached_ticket_state = current_signature
+    
+    if changes_detected:
+        add_refresh_notification(changes_detected)
+        return True
+    
+    return False
+
+
+def should_skip_auto_refresh():
+    """Determine if auto-refresh should be skipped to avoid disrupting user."""
+    # Skip during active voice calls
+    if st.session_state.get("call_active", False):
+        return True
+    
+    # Skip if user recently submitted a form or clicked a button
+    if hasattr(st.session_state, '_form_interaction_time'):
+        if time.time() - st.session_state._form_interaction_time < 120:  # 2 minutes
+            return True
+    
+    # Skip if user is likely typing (heuristic based on text widget keys)
+    text_widget_keys = [key for key in st.session_state.keys() if key.startswith('solution_') or 'description' in key.lower()]
+    if text_widget_keys:
+        # If any text widgets have content, assume user might be typing
+        for key in text_widget_keys:
+            if hasattr(st.session_state, key) and st.session_state[key] and len(str(st.session_state[key]).strip()) > 0:
+                # Set a conservative interaction time if not already set
+                if not hasattr(st.session_state, '_form_interaction_time'):
+                    st.session_state._form_interaction_time = time.time()
+                return True
+    
+    return False
+
+
+def add_refresh_notification(changes):
+    """Add notification about detected changes."""
+    notification_text = "🔔 Updates detected: "
+    
+    if "user_tickets" in changes:
+        notification_text += "New tickets in 'My Tickets' "
+    if "assigned_tickets" in changes:
+        notification_text += "New assignments in 'Assigned to Me' "
+    if "user_updates" in changes:
+        notification_text += "Updates to your tickets "
+    if "assigned_updates" in changes:
+        notification_text += "Updates to assigned tickets "
+    
+    # Add timestamp
+    timestamp = datetime.now().strftime("%H:%M:%S")
+    notification = {
+        "text": notification_text.strip(),
+        "timestamp": timestamp,
+        "id": str(uuid.uuid4())[:8]
+    }
+    
+    # Keep only last 3 notifications
+    st.session_state.refresh_notifications.append(notification)
+    if len(st.session_state.refresh_notifications) > 3:
+        st.session_state.refresh_notifications.pop(0)
+
+
+def show_refresh_notifications():
+    """Display refresh notifications to the user."""
+    if st.session_state.refresh_notifications:
+        for notification in st.session_state.refresh_notifications[-1:]:  # Show only the latest
+            col1, col2 = st.columns([4, 1])
+            with col1:
+                st.info(f"{notification['text']} (at {notification['timestamp']})")
+            with col2:
+                if st.button("✖️", key=f"close_{notification['id']}", help="Dismiss notification"):
+                    st.session_state.refresh_notifications = [
+                        n for n in st.session_state.refresh_notifications 
+                        if n['id'] != notification['id']
+                    ]
+                    st.rerun()
+
+
+def smart_refresh_controls():
+    """Show smart refresh controls in sidebar."""
+    st.sidebar.markdown("---")
+    st.sidebar.markdown("### 🔄 Smart Refresh")
+    
+    # Toggle for smart refresh
+    enabled = st.sidebar.checkbox(
+        "Auto-detect ticket updates",
+        value=st.session_state.smart_refresh_enabled,
+        help="Automatically detect new tickets and updates every 30 seconds"
+    )
+    st.session_state.smart_refresh_enabled = enabled
+    
+    if enabled:
+        # Show last check time
+        last_check = datetime.fromtimestamp(st.session_state.last_ticket_check)
+        st.sidebar.caption(f"Last checked: {last_check.strftime('%H:%M:%S')}")
+        
+        # Show current state
+        signature = st.session_state.cached_ticket_state
+        if signature:
+            st.sidebar.caption(f"Monitoring: {signature.get('user_count', 0)} your tickets, {signature.get('assigned_count', 0)} assigned")
+    
+    # Manual refresh all
+    if st.sidebar.button("🔄 Force Refresh Now", use_container_width=True, help="Manually refresh all ticket data"):
+        st.session_state.cached_ticket_state = {}  # Clear cache to force update
+        st.rerun()
 
 
 def render_availability_status():
@@ -239,8 +416,24 @@ class TicketManager:
 
 def show_ticket_interface():
     """Display the main ticket interface."""
+    # Initialize smart refresh system
+    init_smart_refresh()
+    
     # Render availability status in sidebar first
     render_availability_status()
+    
+    # Add smart refresh controls to sidebar
+    smart_refresh_controls()
+    
+    # Check for updates if smart refresh is enabled
+    if st.session_state.smart_refresh_enabled:
+        updates_detected = check_for_ticket_updates()
+        if updates_detected:
+            # Trigger a rerun to show new data, but preserve user state
+            st.rerun()
+    
+    # Show notifications about detected changes
+    show_refresh_notifications()
     
     # Header with user info and controls
     col1, col2, col3 = st.columns([3, 0.7, 0.7])
@@ -250,10 +443,17 @@ def show_ticket_interface():
         user_display = st.session_state.get("user_full_name", st.session_state.username)
         user_role = st.session_state.get("user_role", "User")
         st.title(f"🎫 Support Ticket System")
-        st.markdown(f"**Welcome {user_display}** | *{user_role}*")
+        
+        # Smart refresh status indicator
+        if st.session_state.smart_refresh_enabled:
+            st.markdown(f"**Welcome {user_display}** | *{user_role}* | 🔄 *Auto-refresh ON*")
+        else:
+            st.markdown(f"**Welcome {user_display}** | *{user_role}*")
     
     with col2:
         if st.button("🔄 Refresh", use_container_width=True, help="Refresh to see latest tickets"):
+            # Clear cache to force full refresh
+            st.session_state.cached_ticket_state = {}
             st.rerun()
     
     with col3:
@@ -353,6 +553,9 @@ def show_create_ticket_form():
         submit_button = st.form_submit_button("Submit Ticket", use_container_width=True)
         
         if submit_button:
+            # Mark form interaction time to prevent auto-refresh disruption
+            st.session_state._form_interaction_time = time.time()
+            
             if subject.strip() and description.strip():
                 # Create the ticket
                 ticket_id = st.session_state.ticket_manager.create_ticket(
@@ -580,9 +783,11 @@ def show_assigned_tickets():
                     key=solution_key
                 )
                 
-                col1, col2 = st.columns(2)
+                col1, col2, col3 = st.columns(3)
                 with col1:
                     if st.button(f"Submit Solution", key=f"submit_{ticket['id']}"):
+                        # Mark interaction time to prevent auto-refresh disruption
+                        st.session_state._form_interaction_time = time.time()
                         if solution.strip():
                             st.session_state.ticket_manager.update_employee_solution(ticket['id'], solution.strip())
                             st.success("✅ Solution submitted successfully!")
@@ -592,6 +797,8 @@ def show_assigned_tickets():
                 
                 with col2:
                     if st.button(f"Mark In Progress", key=f"progress_{ticket['id']}"):
+                        # Mark interaction time to prevent auto-refresh disruption
+                        st.session_state._form_interaction_time = time.time()
                         # Update assignment status to in_progress
                         tickets = st.session_state.ticket_manager.load_tickets()
                         for t in tickets:
@@ -602,6 +809,41 @@ def show_assigned_tickets():
                         st.session_state.ticket_manager.save_tickets(tickets)
                         st.success("✅ Ticket marked as in progress!")
                         st.rerun()
+                
+                with col3:
+                    if st.button(f"📞 Call About This", key=f"call_{ticket['id']}"):
+                        # Mark interaction time to prevent auto-refresh disruption
+                        st.session_state._form_interaction_time = time.time()
+                        # Create call notification for the current employee (self-call)
+                        employee = db_manager.get_employee_by_username(st.session_state.username)
+                        if employee:
+                            call_info = {
+                                "ticket_id": ticket['id'],
+                                "employee_name": employee['full_name'],
+                                "employee_username": st.session_state.username,
+                                "ticket_subject": ticket['subject'],
+                                "ticket_data": ticket,
+                                "employee_data": employee,
+                                "caller_name": "Self-Call",
+                                "created_by": st.session_state.username
+                            }
+                            
+                            # Create call notification for the current employee
+                            success = db_manager.create_call_notification(
+                                target_employee=st.session_state.username,
+                                ticket_id=ticket['id'],
+                                ticket_subject=ticket['subject'],
+                                caller_name="Self-Call",
+                                call_info=call_info
+                            )
+                            
+                            if success:
+                                st.success("📞 Voice call initiated! Check the sidebar to answer.")
+                                st.rerun()
+                            else:
+                                st.error("Failed to start voice call.")
+                        else:
+                            st.error("Employee data not found.")
             else:
                 st.markdown("**Your Solution:**")
                 st.success(ticket.get('employee_solution', 'No solution provided'))
