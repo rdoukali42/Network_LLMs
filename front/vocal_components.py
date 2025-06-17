@@ -188,9 +188,12 @@ class SmoothVocalChat:
         self.gemini = GeminiChat()
         self.tts = CloudTTS()
         self.recognizer = sr.Recognizer()
+        # API key for Gemini transcription fallback
+        self.api_key = "AIzaSyD-tvahGE1_oPquWN20h1lpdBcdZ7fUXlk"
     
     def transcribe_audio(self, audio_bytes) -> str:
-        """Transcribe audio bytes to text using SpeechRecognition."""
+        """Transcribe audio bytes to text using two-tier system: Google STT → Gemini AI recovery."""
+        tmp_file_path = None
         try:
             # Save audio bytes to temporary file with .wav extension
             with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp_file:
@@ -203,35 +206,151 @@ class SmoothVocalChat:
             self.recognizer.pause_threshold = 0.8
             self.recognizer.phrase_threshold = 0.3
             
-            # Transcribe using speech_recognition with error handling
+            # Primary transcription using Google STT
             with sr.AudioFile(tmp_file_path) as source:
                 self.recognizer.adjust_for_ambient_noise(source, duration=0.5)
                 audio = self.recognizer.record(source)
                 text = self.recognizer.recognize_google(audio, language='en-US')
                 
-                # Clean up
+                # Clean up and return successful transcription
                 os.unlink(tmp_file_path)
                 return text
             
         except sr.UnknownValueError:
+            # Google STT failed - try Gemini AI recovery
+            print("🔄 Google STT failed, attempting Gemini AI transcription recovery...")
             try:
-                os.unlink(tmp_file_path)
-            except:
-                pass
-            return "Sorry, I couldn't understand the audio. Please speak clearly."
+                transcription = self._transcribe_with_gemini(tmp_file_path if tmp_file_path else audio_bytes)
+                if tmp_file_path and os.path.exists(tmp_file_path):
+                    os.unlink(tmp_file_path)
+                return transcription
+            except Exception as gemini_error:
+                print(f"❌ Gemini transcription also failed: {gemini_error}")
+                if tmp_file_path and os.path.exists(tmp_file_path):
+                    os.unlink(tmp_file_path)
+                return "I'm having trouble understanding the audio. Could you please speak more clearly or try again?"
+                
         except sr.RequestError as e:
-            try:
+            if tmp_file_path and os.path.exists(tmp_file_path):
                 os.unlink(tmp_file_path)
-            except:
-                pass
             return f"Speech recognition service error: {e}"
         except Exception as e:
-            try:
+            if tmp_file_path and os.path.exists(tmp_file_path):
                 os.unlink(tmp_file_path)
-            except:
-                pass
             return f"Error processing audio: {e}"
     
+    def _transcribe_with_gemini(self, audio_input) -> str:
+        """Use Gemini AI to transcribe audio when Google STT fails."""
+        try:
+            # Convert audio to base64 for Gemini API
+            if isinstance(audio_input, str) and os.path.exists(audio_input):
+                # Read from file path
+                with open(audio_input, 'rb') as f:
+                    audio_data = f.read()
+            else:
+                # Use audio bytes directly
+                audio_data = audio_input
+            
+            # Convert to base64
+            audio_base64 = base64.b64encode(audio_data).decode('utf-8')
+            
+            headers = {
+                "Content-Type": "application/json",
+                "x-goog-api-key": self.api_key
+            }
+            
+            # Use Gemini's multimodal capabilities for audio transcription
+            data = {
+                "contents": [{
+                    "parts": [
+                        {"text": "Please transcribe this audio to text. Focus on extracting any spoken words, even if unclear. If you can make out partial words or phrases, include them with context. Return only the transcribed text without explanations."},
+                        {
+                            "inline_data": {
+                                "mime_type": "audio/wav",
+                                "data": audio_base64
+                            }
+                        }
+                    ]
+                }],
+                "generationConfig": {
+                    "temperature": 0.1,  # Low temperature for accuracy
+                    "maxOutputTokens": 150
+                }
+            }
+            
+            response = requests.post(
+                "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent",
+                headers=headers,
+                json=data,
+                timeout=30
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                if 'candidates' in result and len(result['candidates']) > 0:
+                    transcription = result['candidates'][0]['content']['parts'][0]['text'].strip()
+                    
+                    # Apply context-aware auto-correction
+                    corrected_text = self._apply_context_correction(transcription)
+                    
+                    print(f"✅ Gemini transcription successful: {corrected_text}")
+                    return corrected_text
+            
+            # If Gemini API fails, return a helpful error
+            raise Exception("Gemini API returned no valid transcription")
+            
+        except Exception as e:
+            print(f"❌ Gemini transcription failed: {e}")
+            raise e
+    
+    def _apply_context_correction(self, raw_transcription: str) -> str:
+        """Apply context-aware correction to transcription using Gemini."""
+        try:
+            headers = {
+                "Content-Type": "application/json",
+                "x-goog-api-key": self.api_key
+            }
+            
+            correction_prompt = f"""Please correct any spelling errors, improve grammar, and enhance clarity in this transcribed text while preserving the original meaning. Focus on common speech-to-text errors like:
+- Homophones (there/their, to/too/two)
+- Technical terms that might be misheard
+- Common words that sound similar
+- Grammar issues from spoken language
+
+Original transcription: "{raw_transcription}"
+
+Return only the corrected text, no explanations."""
+            
+            data = {
+                "contents": [{
+                    "parts": [{"text": correction_prompt}]
+                }],
+                "generationConfig": {
+                    "temperature": 0.2,
+                    "maxOutputTokens": 100
+                }
+            }
+            
+            response = requests.post(
+                "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent",
+                headers=headers,
+                json=data,
+                timeout=15
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                if 'candidates' in result and len(result['candidates']) > 0:
+                    corrected = result['candidates'][0]['content']['parts'][0]['text'].strip()
+                    return corrected
+                    
+            # If correction fails, return original
+            return raw_transcription
+            
+        except Exception as e:
+            print(f"⚠️ Context correction failed, using raw transcription: {e}")
+            return raw_transcription
+
     def process_voice_input(self, audio_bytes, ticket_data: Dict, employee_data: Dict, conversation_history: List = None) -> Tuple[str, str, Optional[bytes]]:
         """Process voice input and return transcription, response, and TTS audio."""
         # Transcribe audio
