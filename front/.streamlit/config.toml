@@ -1,0 +1,20 @@
+[server]
+fileWatcherType = "poll"
+runOnSave = false
+maxUploadSize = 200
+enableCORS = false
+enableXsrfProtection = false
+
+[browser]
+gatherUsageStats = false
+
+[theme]
+base = "light"
+
+[runner]
+magicEnabled = true
+installTracer = false
+fixMatplotlib = true
+
+[logger]
+level = "error"

@@ -31,6 +31,8 @@ class CloudTTS:
     def synthesize_speech(self, text: str) -> bytes:
         """Synthesize speech using Google Cloud TTS REST API."""
         try:
+            print(f"🎤 TTS REQUEST: Synthesizing speech for text: '{text[:100]}{'...' if len(text) > 100 else ''}'")
+            
             # Limit text length
             if len(text) > 800:
                 text = text[:800] + "..."
@@ -64,17 +66,22 @@ class CloudTTS:
                 result = response.json()
                 audio_content = result.get('audioContent')
                 if audio_content:
+                    print(f"✅ TTS SUCCESS: Generated {len(base64.b64decode(audio_content))} bytes of audio")
                     return base64.b64decode(audio_content)
             
+            print(f"⚠️ TTS API FAILED: Status {response.status_code}, falling back to gTTS")
             # Fallback to gTTS
             return self._fallback_tts(text)
             
         except Exception as e:
+            print(f"❌ TTS ERROR: {e}, falling back to gTTS")
             return self._fallback_tts(text)
     
     def _fallback_tts(self, text: str) -> bytes:
         """Fallback to gTTS if Cloud TTS fails."""
+        print(f"🔄 TTS FALLBACK: Using gTTS for text: '{text[:50]}{'...' if len(text) > 50 else ''}'")
         if not GTTS_AVAILABLE:
+            print("❌ gTTS not available, returning empty audio")
             return b""
         
         try:
@@ -82,8 +89,11 @@ class CloudTTS:
             fp = io.BytesIO()
             tts.write_to_fp(fp)
             fp.seek(0)
-            return fp.read()
-        except:
+            audio_data = fp.read()
+            print(f"✅ gTTS SUCCESS: Generated {len(audio_data)} bytes of audio")
+            return audio_data
+        except Exception as e:
+            print(f"❌ gTTS ERROR: {e}")
             return b""
 
 
@@ -97,6 +107,9 @@ class GeminiChat:
     def chat(self, message: str, ticket_data: Dict, employee_data: Dict, is_employee: bool = True, conversation_history: List = None) -> str:
         """Send message to Gemini and get response with ticket and employee context."""
         try:
+            print(f"🧠 GEMINI REQUEST: Chat request for {'employee conversation' if is_employee else 'solution generation'}")
+            print(f"   Message: '{message[:100]}{'...' if len(message) > 100 else ''}'")
+            
             headers = {
                 "Content-Type": "application/json",
                 "x-goog-api-key": self.api_key
@@ -128,6 +141,7 @@ CONVERSATION RULES:
 3. If they give clear answers, accept them gracefully: "That makes perfect sense, thank you!"
 4. Be encouraging: "Perfect!", "That makes sense!", "Excellent suggestion!"
 5. When you have a complete solution, say: "Wonderful! I think I have everything I need. Thank you so much for your help!"
+6. SPECIAL HANDLING: If you receive unclear messages like "Please provide the audio" or "Please provide the audio file", treat this as a technical glitch and start the conversation naturally as you would when first contacting the employee about the ticket. Introduce yourself and explain why you're calling about this specific ticket.
 
 TONE: Friendly, warm, conversational, appreciative of their expertise. Sound like a helpful colleague, not a robotic assistant."""
             else:
@@ -173,11 +187,14 @@ IMPORTANT: Base the solution primarily on what the employee said during the conv
                 result = response.json()
                 if 'candidates' in result and len(result['candidates']) > 0:
                     content = result['candidates'][0]['content']['parts'][0]['text']
+                    print(f"✅ GEMINI SUCCESS: Generated response: '{content[:100]}{'...' if len(content) > 100 else ''}'")
                     return content.strip()
             
+            print(f"⚠️ GEMINI API FAILED: Status {response.status_code}")
             return "Sorry, I couldn't process your request right now."
             
         except Exception as e:
+            print(f"❌ GEMINI ERROR: {str(e)}")
             return f"Error: {str(e)}"
 
 
@@ -193,6 +210,7 @@ class SmoothVocalChat:
     
     def transcribe_audio(self, audio_bytes) -> str:
         """Transcribe audio bytes to text using two-tier system: Google STT → Gemini AI recovery."""
+        print(f"🎧 STT REQUEST: Starting transcription for {len(audio_bytes)} bytes of audio")
         tmp_file_path = None
         try:
             # Save audio bytes to temporary file with .wav extension
@@ -210,8 +228,10 @@ class SmoothVocalChat:
             with sr.AudioFile(tmp_file_path) as source:
                 self.recognizer.adjust_for_ambient_noise(source, duration=0.5)
                 audio = self.recognizer.record(source)
+                print("🔄 STT: Calling Google Speech Recognition API...")
                 text = self.recognizer.recognize_google(audio, language='en-US')
                 
+                print(f"✅ GOOGLE STT SUCCESS: '{text}'")
                 # Clean up and return successful transcription
                 os.unlink(tmp_file_path)
                 return text
@@ -231,16 +251,19 @@ class SmoothVocalChat:
                 return "I'm having trouble understanding the audio. Could you please speak more clearly or try again?"
                 
         except sr.RequestError as e:
+            print(f"❌ GOOGLE STT SERVICE ERROR: {e}")
             if tmp_file_path and os.path.exists(tmp_file_path):
                 os.unlink(tmp_file_path)
             return f"Speech recognition service error: {e}"
         except Exception as e:
+            print(f"❌ STT GENERAL ERROR: {e}")
             if tmp_file_path and os.path.exists(tmp_file_path):
                 os.unlink(tmp_file_path)
             return f"Error processing audio: {e}"
     
     def _transcribe_with_gemini(self, audio_input) -> str:
         """Use Gemini AI to transcribe audio when Google STT fails."""
+        print(f"🔄 GEMINI STT FALLBACK: Attempting Gemini AI transcription...")
         try:
             # Convert audio to base64 for Gemini API
             if isinstance(audio_input, str) and os.path.exists(audio_input):
@@ -253,6 +276,7 @@ class SmoothVocalChat:
             
             # Convert to base64
             audio_base64 = base64.b64encode(audio_data).decode('utf-8')
+            print(f"📤 GEMINI STT: Sending {len(audio_base64)} chars of base64 audio to Gemini API...")
             
             headers = {
                 "Content-Type": "application/json",
@@ -305,6 +329,7 @@ class SmoothVocalChat:
     
     def _apply_context_correction(self, raw_transcription: str) -> str:
         """Apply context-aware correction to transcription using Gemini."""
+        print(f"🔧 CORRECTION REQUEST: Applying context correction to: '{raw_transcription}'")
         try:
             headers = {
                 "Content-Type": "application/json",
@@ -342,8 +367,10 @@ Return only the corrected text, no explanations."""
                 result = response.json()
                 if 'candidates' in result and len(result['candidates']) > 0:
                     corrected = result['candidates'][0]['content']['parts'][0]['text'].strip()
+                    print(f"✅ CORRECTION SUCCESS: '{raw_transcription}' → '{corrected}'")
                     return corrected
                     
+            print(f"⚠️ CORRECTION API FAILED: Status {response.status_code}")
             # If correction fails, return original
             return raw_transcription
             
@@ -353,14 +380,47 @@ Return only the corrected text, no explanations."""
 
     def process_voice_input(self, audio_bytes, ticket_data: Dict, employee_data: Dict, conversation_history: List = None) -> Tuple[str, str, Optional[bytes]]:
         """Process voice input and return transcription, response, and TTS audio."""
+        print(f"\n🎯 VOICE PROCESSING: Starting complete voice input processing...")
+        print(f"   Audio size: {len(audio_bytes)} bytes")
+        print(f"   Ticket: {ticket_data.get('subject', 'No subject')}")
+        print(f"   Employee: {employee_data.get('full_name', 'Unknown')}")
+        
+        # Import streamlit to check session state
+        try:
+            import streamlit as st
+            # Check if call is still active to prevent processing after END_CALL
+            if not st.session_state.get('call_active', False):
+                print("⏹️ CALL INACTIVE: Skipping processing as call is not active")
+                return "Call has ended. No further processing.", None, None
+        except:
+            # If streamlit not available, continue processing
+            pass
+        
         # Transcribe audio
         transcription = self.transcribe_audio(audio_bytes)
         
         if "Sorry" in transcription or "Error" in transcription:
+            print(f"❌ TRANSCRIPTION FAILED: {transcription}")
             return transcription, None, None
+        
+        # Double-check call state before generating response
+        try:
+            import streamlit as st
+            if not st.session_state.get('call_active', False):
+                return transcription, "Call has ended. No response generated.", None
+        except:
+            pass
         
         # Get employee response using Gemini
         response = self.gemini.chat(transcription, ticket_data, employee_data, is_employee=True, conversation_history=conversation_history)
+        
+        # Final check before TTS generation
+        try:
+            import streamlit as st
+            if not st.session_state.get('call_active', False):
+                return transcription, response, None  # Skip TTS if call ended
+        except:
+            pass
         
         # Generate TTS audio for employee response
         tts_audio_bytes = None

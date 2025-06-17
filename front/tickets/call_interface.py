@@ -114,8 +114,18 @@ def show_active_call_interface():
                 st.session_state.last_audio_process_time = current_time
                 st.session_state.last_audio_hash = audio_hash
                 
+                # Check if call is still active before processing
+                if not st.session_state.get('call_active', False):
+                    st.info("Call has ended. No further audio processing.")
+                    return
+                
                 with st.spinner("🔄 Processing voice input..."):
                     try:
+                        # Double-check call state before processing
+                        if not st.session_state.get('call_active', False):
+                            st.info("Call ended during processing.")
+                            return
+                        
                         # Get ticket and employee data
                         ticket_data = call_info.get('ticket_data', {})
                         employee_data = call_info.get('employee_data', {})
@@ -179,11 +189,22 @@ def show_active_call_interface():
     
     with col1:
         if st.button("📴 End Call", type="secondary", use_container_width=True):
-            # Generate solution from conversation
+            # Immediately set call_active to False to prevent any further processing
+            st.session_state.call_active = False
+            
+            # Generate solution from conversation if exists
             if st.session_state.conversation_history:
                 generate_solution_from_call()
             else:
-                st.session_state.call_active = False
+                # Clear all call-related session state
+                st.session_state.call_info = None
+                st.session_state.conversation_history = []
+                # Clear any ongoing processing states
+                if 'last_audio_process_time' in st.session_state:
+                    del st.session_state.last_audio_process_time
+                if 'last_audio_hash' in st.session_state:
+                    del st.session_state.last_audio_hash
+                st.rerun()
                 st.session_state.call_info = None
                 st.session_state.conversation_history = []
                 st.rerun()
@@ -348,8 +369,23 @@ Keep the response SHORT and focused - no bullet points, no detailed steps, just 
         st.error(f"Details: {traceback.format_exc()}")
     
     finally:
-        # End the call
+        # Ensure complete cleanup of call state
         st.session_state.call_active = False
         st.session_state.call_info = None
         st.session_state.conversation_history = []
+        
+        # Clear any ongoing audio processing states
+        if 'last_audio_process_time' in st.session_state:
+            del st.session_state.last_audio_process_time
+        if 'last_audio_hash' in st.session_state:
+            del st.session_state.last_audio_hash
+        
+        # Clear any vocal chat processing states that might cause re-answering
+        if 'vocal_chat' in st.session_state and hasattr(st.session_state.vocal_chat, 'gemini'):
+            # Reset any conversation memory in the AI chat
+            try:
+                st.session_state.vocal_chat.gemini.conversation_memory = []
+            except:
+                pass
+        
         st.rerun()

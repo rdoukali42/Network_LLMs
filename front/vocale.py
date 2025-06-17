@@ -340,8 +340,3 @@ with st.expander("ℹ️ How to Use"):
     - Gemini API key
     - Google Cloud credentials (optional, for better TTS/STT)
     """)
-
-# Auto-refresh for real-time updates
-if st.session_state.conversation_active:
-    time.sleep(1)
-    st.rerun()
