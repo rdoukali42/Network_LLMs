@@ -20,9 +20,13 @@ class AvailabilityTool:
         self.name = "availability_checker"
         self.description = "Check employee availability status for ticket routing"
     
-    def get_available_employees(self) -> Dict:
+    def get_available_employees(self, exclude_username: str = None) -> Dict:
         """
         Get current employee availability status organized for routing.
+        Automatically excludes the current user from session state to prevent self-assignment.
+        
+        Args:
+            exclude_username: Deprecated parameter (kept for backward compatibility)
         
         Returns:
             Dict with employee availability data
@@ -32,6 +36,19 @@ class AvailabilityTool:
         
         # Get all active employees
         all_employees = db_manager.get_all_employees()
+        
+        # Automatically exclude current user from session state to prevent self-assignment
+        try:
+            import streamlit as st
+            if hasattr(st, 'session_state') and hasattr(st.session_state, 'username'):
+                current_user = st.session_state.username
+                all_employees = [emp for emp in all_employees if emp.get('username') != current_user]
+                print(f"🚫 Automatically excluded current user '{current_user}' from employee list")
+        except (ImportError, AttributeError):
+            # Fall back to exclude_username parameter if streamlit not available
+            if exclude_username:
+                all_employees = [emp for emp in all_employees if emp.get('username') != exclude_username]
+                print(f"🚫 Excluded user '{exclude_username}' from employee list (fallback mode)")
         
         # Organize by availability status
         availability_data = {

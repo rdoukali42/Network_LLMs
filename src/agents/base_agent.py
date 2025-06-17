@@ -428,7 +428,7 @@ class HRAgent(BaseAgent):
         try:
             print(f"👥 HRAgent finding expert for: {query}")
             
-            # Get available employees
+            # Get available employees (automatically filtered by AvailabilityTool)
             if self.availability_tool:
                 available_employees = self.availability_tool.get_available_employees()
             else:
@@ -468,17 +468,48 @@ class HRAgent(BaseAgent):
             }
     
     def _find_best_employee_match(self, query: str, available_employees: Dict) -> Dict:
-        """Find the best employee match for the query."""
+        """Find the best employee match for the query using improved domain-aware matching."""
         # Combine available and busy employees (busy can handle urgent issues)
         candidates = available_employees["available"] + available_employees["busy"]
         
         if not candidates:
             return None
         
-        # Simple keyword matching for ticket routing
+        # Improved keyword matching with domain awareness
         query_lower = query.lower()
         
-        # Score employees based on relevance
+        # Define domain-specific keywords and their domains
+        domain_keywords = {
+            'ml': ['model', 'classification', 'algorithm', 'machine learning', 'neural', 'deep learning', 
+                   'training', 'prediction', 'dataset', 'feature', 'mlops', 'pytorch', 'tensorflow',
+                   'regression', 'clustering', 'supervised', 'unsupervised', 'ai', 'artificial intelligence'],
+            'ui_ux': ['design', 'interface', 'user experience', 'prototype', 'wireframe', 'figma', 
+                     'usability', 'accessibility', 'responsive', 'frontend', 'ui', 'ux'],
+            'data': ['data', 'analysis', 'visualization', 'dashboard', 'sql', 'database', 'analytics',
+                    'reporting', 'statistics', 'pandas', 'excel', 'powerbi'],
+            'backend': ['api', 'server', 'database', 'backend', 'python', 'javascript', 'django',
+                       'deployment', 'infrastructure', 'microservices'],
+            'product': ['product', 'roadmap', 'requirements', 'specification', 'agile', 'scrum',
+                       'stakeholder', 'business', 'strategy', 'kpi']
+        }
+        
+        # Detect query domain
+        detected_domains = []
+        for domain, keywords in domain_keywords.items():
+            if any(keyword in query_lower for keyword in keywords):
+                detected_domains.append(domain)
+        
+        # Extract meaningful keywords (filter out noise)
+        stop_words = {'the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 
+                     'by', 'is', 'are', 'was', 'were', 'be', 'been', 'have', 'has', 'had',
+                     'do', 'does', 'did', 'will', 'would', 'could', 'should', 'can', 'may',
+                     'i', 'you', 'he', 'she', 'it', 'we', 'they', 'a', 'an', 'this', 'that',
+                     'these', 'those', 'my', 'your', 'his', 'her', 'its', 'our', 'their'}
+        
+        meaningful_keywords = [word for word in query_lower.split() 
+                              if len(word) > 2 and word not in stop_words]
+        
+        # Score employees based on improved relevance
         scored_candidates = []
         for employee in candidates:
             score = 0
@@ -486,18 +517,43 @@ class HRAgent(BaseAgent):
             expertise = employee.get('expertise', '').lower()
             responsibilities = employee.get('responsibilities', '').lower()
             
-            # Score based on keyword matches
-            for keyword in query_lower.split():
+            # Domain-specific scoring - huge bonus for domain experts
+            employee_domains = []
+            if any(term in role + expertise for term in ['machine learning', 'ml', 'data scientist']):
+                employee_domains.append('ml')
+            if any(term in role + expertise for term in ['ui', 'ux', 'design']):
+                employee_domains.append('ui_ux')
+            if any(term in role + expertise for term in ['data analyst', 'analytics']):
+                employee_domains.append('data')
+            if any(term in role + expertise for term in ['software engineer', 'backend', 'api']):
+                employee_domains.append('backend')
+            if any(term in role + expertise for term in ['product manager', 'product']):
+                employee_domains.append('product')
+            
+            # Give massive bonus for domain match
+            for domain in detected_domains:
+                if domain in employee_domains:
+                    score += 50  # Domain expert gets huge advantage
+            
+            # Keyword-based scoring (improved)
+            for keyword in meaningful_keywords:
                 if keyword in role:
-                    score += 3
-                if keyword in expertise:
                     score += 5
+                if keyword in expertise:
+                    score += 8
                 if keyword in responsibilities:
-                    score += 2
+                    score += 3
+                    
+            # Additional domain keyword bonuses
+            for domain, keywords in domain_keywords.items():
+                if domain in employee_domains:
+                    for keyword in keywords:
+                        if keyword in query_lower:
+                            score += 10
             
             # Prefer available over busy
             if employee.get('availability_status') == 'Available':
-                score += 1
+                score += 2
             
             scored_candidates.append((score, employee))
         

@@ -140,7 +140,7 @@ class MultiAgentWorkflow:
         # Get query
         query = state.get("query", "")
         
-        # Run HR Agent
+        # Run HR Agent (AvailabilityTool will automatically filter current user)
         if "hr_agent" in self.agents:
             hr_result = self.agents["hr_agent"].run({"query": query})
             state["results"]["hr_agent"] = hr_result.get("result", "No employee found")
@@ -231,13 +231,15 @@ Please reach out to them directly - they'll be able to provide specialized assis
     def run(self, initial_input: Dict[str, Any]) -> Dict[str, Any]:
         """Run the complete workflow."""
         query = initial_input.get("query", "")
+        exclude_username = initial_input.get("exclude_username", None)
         
         initial_state: WorkflowState = {
             "messages": [{"content": query, "type": "user"}],
             "current_step": "",
             "results": {},
             "metadata": initial_input,
-            "query": query  # Ensure query is preserved
+            "query": query,  # Ensure query is preserved
+            "exclude_username": exclude_username  # Pass user exclusion context
         }
         
         # Try to run the graph workflow, fallback to simple execution

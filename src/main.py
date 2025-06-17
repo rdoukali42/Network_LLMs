@@ -185,13 +185,15 @@ class AISystem:
             return response
             
         except Exception as e:
-            return {
+            print(f"❌ Error processing query: {e}")
+            response = {
                 "query": query,
                 "status": "error",
                 "error": str(e),
                 "result": f"Error processing query: {e}"
             }
-    
+            return response
+
     @observe()
     def add_documents_to_vectorstore(self, documents: List[str]) -> Dict[str, Any]:
         """Add documents to the vector store."""

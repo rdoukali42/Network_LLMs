@@ -15,6 +15,7 @@ def process_ticket_with_ai(ticket_id: str, subject: str, description: str):
         
         # Process with AI workflow
         with st.spinner(f"Processing ticket {ticket_id} with AI..."):
+            # Simple query processing - AvailabilityTool will automatically filter current user
             result = st.session_state.workflow_client.process_message(query)
             
             # Extract AI response from different possible formats
@@ -37,9 +38,17 @@ def process_ticket_with_ai(ticket_id: str, subject: str, description: str):
                     username_match = response.split("(@")[1].split(")")[0] if "(@" in response else None
                     
                     if username_match:
-                        # Verify employee exists and assign ticket
+                        # Verify employee exists
                         employee = db_manager.get_employee_by_username(username_match)
                         if employee:
+                            # Prevent self-assignment: check if the assigned employee username matches the ticket submitter
+                            if username_match == st.session_state.username:
+                                # Skip this assignment and provide a message indicating the need for alternative routing
+                                fallback_response = f"The system attempted to assign this ticket to {employee['full_name']}, but automatic self-assignment is not allowed. Your ticket will be reviewed and manually assigned to an appropriate expert."
+                                st.session_state.ticket_manager.update_ticket_response(ticket_id, fallback_response)
+                                st.warning(f"⚠️ Self-assignment prevented: {employee['full_name']} cannot be assigned to their own ticket.")
+                                return
+                            
                             st.session_state.ticket_manager.assign_ticket(ticket_id, username_match)
                             
                             # Trigger voice call with Vocal Assistant

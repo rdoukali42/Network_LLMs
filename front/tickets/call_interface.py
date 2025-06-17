@@ -47,69 +47,124 @@ def show_active_call_interface():
         from vocal_components import SmoothVocalChat
         st.session_state.vocal_chat = SmoothVocalChat()
     
-    # Voice interface
+    # Voice interface with audio controls
     st.markdown("### 🎤 Voice Conversation")
     st.markdown("Speak into the microphone to discuss the ticket with the employee.")
+    
+    # Audio quality controls
+    with st.expander("🔧 Audio Settings", expanded=False):
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            # Microphone sensitivity control
+            pause_threshold = st.slider(
+                "Recording Sensitivity",
+                min_value=0.5,
+                max_value=4.0,
+                value=2.0,
+                step=0.5,
+                help="Higher values = less sensitive (need louder voice)"
+            )
+            
+        with col2:
+            # Sample rate for noise reduction
+            sample_rate = st.selectbox(
+                "Audio Quality",
+                options=[16000, 22050, 44100],
+                index=0,  # Default to 16000 for better noise handling
+                help="Lower rates reduce noise but may affect quality"
+            )
+    
+    # Enhanced permission reminder with audio tips
+    st.info("💡 Audio Tips: Speak clearly, minimize background noise, allow microphone access, and adjust sensitivity if needed.")
     
     # Import audio recorder
     try:
         from audio_recorder_streamlit import audio_recorder
         
-        # Audio recorder with flexible sample rate for better voice capture
+        # Enhanced audio recorder configuration with user controls
         audio_bytes = audio_recorder(
             text="Click to record",
             recording_color="#ff4444",
             neutral_color="#28a745",
             icon_name="microphone",
             icon_size="3x",
-            pause_threshold=2.0,
-            sample_rate=22050,  # Standard rate that works well for speech recognition
+            pause_threshold=pause_threshold,  # User-controlled sensitivity
+            sample_rate=sample_rate,          # User-controlled quality
             key="call_audio_recorder"
         )
         
-        # Process audio input - removed hash collision blocking to allow repeated processing
+        # Improved processing - prevent duplicates but allow legitimate recordings
         if audio_bytes:
-            # Generate unique processing ID based on timestamp to avoid blocking similar audio
-            processing_id = f"{time.time()}_{len(audio_bytes)}"
-            last_processing_id = st.session_state.get('last_call_processing_id', None)
-            
-            # Only skip if it's the exact same recording in rapid succession (within 1 second)
             current_time = time.time()
-            last_process_time = st.session_state.get('last_process_time', 0)
+            last_process_time = st.session_state.get('last_audio_process_time', 0)
+            last_audio_hash = st.session_state.get('last_audio_hash', '')
             
-            if processing_id != last_processing_id or (current_time - last_process_time) > 1.0:
-                st.session_state.last_call_processing_id = processing_id
-                st.session_state.last_process_time = current_time
+            # Create simple hash of audio to detect duplicates
+            import hashlib
+            audio_hash = hashlib.md5(audio_bytes).hexdigest()[:8]
+            
+            # Allow processing if:
+            # 1. More than 1 second has passed (reduced from 2), OR
+            # 2. Audio content is different (different hash)
+            time_passed = (current_time - last_process_time) > 1.0
+            audio_different = audio_hash != last_audio_hash
+            
+            if time_passed or audio_different:
+                st.session_state.last_audio_process_time = current_time
+                st.session_state.last_audio_hash = audio_hash
                 
                 with st.spinner("🔄 Processing voice input..."):
-                    # Get ticket and employee data
-                    ticket_data = call_info.get('ticket_data', {})
-                    employee_data = call_info.get('employee_data', {})
-                    
-                    # Process voice input
-                    transcription, response, tts_audio_bytes = st.session_state.vocal_chat.process_voice_input(
-                        audio_bytes, 
-                        ticket_data, 
-                        employee_data, 
-                        st.session_state.conversation_history
-                    )
-                    
-                    if transcription and response:
-                        # Add to conversation history
-                        st.session_state.conversation_history.append(("You", transcription))
-                        st.session_state.conversation_history.append(("Employee", response))
+                    try:
+                        # Get ticket and employee data
+                        ticket_data = call_info.get('ticket_data', {})
+                        employee_data = call_info.get('employee_data', {})
                         
-                        # Show transcription
-                        st.success(f"**You said:** {transcription}")
-                        st.info(f"**Employee:** {response}")
+                        # Process voice input
+                        transcription, response, tts_audio_bytes = st.session_state.vocal_chat.process_voice_input(
+                            audio_bytes, 
+                            ticket_data, 
+                            employee_data, 
+                            st.session_state.conversation_history
+                        )
                         
-                        # Play employee response
-                        if tts_audio_bytes:
-                            st.audio(tts_audio_bytes, format='audio/mp3', autoplay=True)
+                        if transcription:
+                            # Always show what was understood
+                            st.success(f"**You said:** {transcription}")
+                            
+                            # Add transcription to conversation history
+                            st.session_state.conversation_history.append(("You", transcription))
+                            
+                            if response:
+                                # Add employee response to conversation history
+                                st.session_state.conversation_history.append(("Employee", response))
+                                st.info(f"**Employee:** {response}")
+                                
+                                # Play employee response
+                                if tts_audio_bytes:
+                                    st.audio(tts_audio_bytes, format='audio/mp3', autoplay=True)
+                            else:
+                                # Handle case where transcription worked but response failed
+                                st.warning("🤔 The employee is thinking... Please try asking again or rephrase your question.")
+                                # Still add a placeholder to maintain conversation flow
+                                st.session_state.conversation_history.append(("Employee", "I need a moment to process that. Could you please rephrase or try again?"))
+                        else:
+                            # Handle case where transcription failed
+                            st.error("❌ Could not understand the audio. Please speak clearly and try again.")
+                            st.info("💡 Tips: Speak clearly, check your microphone, and ensure there's minimal background noise.")
+                                
+                    except Exception as e:
+                        st.error(f"❌ Processing failed: {str(e)}")
+                        st.info("💡 Try recording again")
+            else:
+                if not time_passed:
+                    st.info("⏳ Recording too quickly - please wait a moment...")
+                elif not audio_different:
+                    st.info("🔄 Same audio detected - please record something new...")
                             
     except ImportError:
-        st.error("Audio recording not available. Please install audio_recorder_streamlit.")
-        st.code("pip install audio_recorder_streamlit")
+        st.error("❌ Audio recording not available. Please install audio-recorder-streamlit")
+        st.code("pip install audio-recorder-streamlit")
     
     # Conversation history
     if st.session_state.conversation_history:
@@ -161,13 +216,46 @@ def generate_solution_from_call():
         conversation_summary = "\n".join([f"{speaker}: {message}" for speaker, message in st.session_state.conversation_history])
         
         with st.spinner("🔄 Processing conversation and generating solution..."):
-            # Step 1: Extract employee solution from conversation
-            initial_solution = st.session_state.vocal_chat.gemini.chat(
-                f"Generate a professional ticket resolution based on this conversation: {conversation_summary}",
-                ticket_data,
-                employee_data,
-                is_employee=False
-            )
+            # Step 1: Generate solution without any TTS - Simple text-based approach
+            # Extract the last meaningful employee response from conversation
+            employee_responses = []
+            for speaker, message in st.session_state.conversation_history:
+                if speaker == "Employee" and len(message.strip()) > 10:
+                    employee_responses.append(message.strip())
+            
+            # Create a professional solution based on employee responses
+            if employee_responses:
+                # Use the most recent and comprehensive employee response
+                main_solution = employee_responses[-1]
+                
+                # Format into professional solution
+                initial_solution = f"""Based on our conversation with {employee_data.get('full_name', 'our technical expert')}, here is the recommended solution:
+
+**Expert Recommendation:**
+{main_solution}
+
+**Technical Context:**
+- Issue: {ticket_data.get('description', 'Technical issue reported')}
+- Expert: {employee_data.get('full_name', 'Technical Specialist')} ({employee_data.get('role_in_company', 'IT Team')})
+- Priority: {ticket_data.get('priority', 'Medium')}
+
+**Next Steps:**
+Please follow the expert's recommendation above. If you need further assistance, feel free to create a new support ticket.
+
+This solution was generated from a voice consultation with our technical team."""
+            else:
+                # Fallback if no clear employee responses
+                initial_solution = f"""A voice consultation was completed with {employee_data.get('full_name', 'our technical expert')} regarding your support request.
+
+**Issue:** {ticket_data.get('description', 'Technical support requested')}
+
+**Consultation Summary:**
+Our technical expert has reviewed your case and provided guidance during the call. Please refer to any notes or instructions that were shared during the conversation.
+
+If you need additional clarification or have follow-up questions, please create a new support ticket with specific details about what you need help with.
+
+**Expert:** {employee_data.get('full_name', 'Technical Specialist')} ({employee_data.get('role_in_company', 'IT Team')})
+**Priority:** {ticket_data.get('priority', 'Medium')}"""
             
             if not initial_solution:
                 st.error("Failed to generate solution from conversation.")
