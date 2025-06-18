@@ -87,7 +87,8 @@ Please analyze these search results and:
 6. If no relevant information is found, clearly mention that 'no relevant information'
 
 Provide a structured analysis of what information is available locally."""
-                
+                # print(f"❌ ❌ ❌ ❌ ❌ ❌ ❌ Document Chunck : {i+1} \n {result['content']} \n Source: {result.get('metadata', {}).get('source', 'Unknown')} \n Relevance Score: {result.get('score', 'N/A')}")
+                # print(f"🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️🛡️ LOCAL DOCUMENT SEARCH RESULTS: {''.join(formatted_results)}")
                 if self.agent_executor:
                     result = self.agent_executor.invoke({"input": analysis_input})
                     return {

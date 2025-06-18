@@ -198,24 +198,44 @@ class HRAgent(BaseAgent):
             employee_profiles.append(profile)
         
         # AI prompt for employee matching
-        prompt = f"""You are an expert HR assistant tasked with matching support tickets to the best employees.
+        prompt = f"""You are an expert HR matching system tasked with matching support tickets to the best employees.
 
 TICKET DETAILS:
 Title: {ticket.title}
 Description: {ticket.description}
 Priority: {ticket.priority}
-Required Skills: {ticket.skills_required}
-Department: {ticket.department or 'Any'}
 
 AVAILABLE EMPLOYEES:
 {json.dumps(employee_profiles, indent=2)}
 
-TASK: Analyze the ticket and match it with the most suitable employees. Consider:
-1. Technical expertise alignment with the problem described
-2. Relevant experience and skills matching the issue
-3. Current availability and workload capacity
-4. Department relevance and role suitability
-5. Problem complexity vs employee capability
+TASK: Follow this strict workflow:
+
+1. TICKET ANALYSIS PHASE:
+- Interpret "{ticket.description}" to identify:
+  • Core problem type (technical/human/ambiguous)
+  • Actual required expertise (vs mentioned keywords)
+  • Hidden needs based on context
+- Create POTENTIAL TICKET: 
+  {{
+    "true_problem": "Extracted core issue", 
+    "critical_expertise": ["essential","skills"],
+    "secondary_factors": ["department","urgency"]
+  }}
+
+2. MATCHING PHASE:
+For each employee:
+- Calculate BASE SCORE (0-100):
+  70% weight: Match between POTENTIAL TICKET's "critical_expertise" and employee skills
+  30% weight: Alignment with POTENTIAL TICKET's "true_problem" based on historical tickets solved
+- Apply BONUS/PENALTY:
+  +15%: Available AND workload < 60% capacity
+  -10%: Missing ≥2 critical skills
+- FINAL SCORE = (BASE SCORE + adjustments) capped at 100 (1.0)
+
+3. SELECTION RULES:
+- Must have ≥60% BASE SCORE to qualify
+- Prioritize expertise over availability: Available candidates get preference ONLY when final scores are within 10 points
+- If no BASE SCORE ≥60 exists, select top expert regardless of availability
 
 Return a JSON array of the TOP 3 BEST MATCHES in this exact format:
 [
@@ -234,12 +254,12 @@ Return a JSON array of the TOP 3 BEST MATCHES in this exact format:
     }}
 ]
 
-IMPORTANT:
-- All scores must be between 0.0 and 1.0
-- Order by overall_score (highest first)
-- Be specific about technical matches
-- Focus on the actual problem described in the ticket
-- Consider exact skills needed vs available
+CRITICAL RULES:
+- All scores must be between 0.0 and 1.0 (0-100%)
+- The POTENTIAL TICKET must be created before any matching
+- Scores represent percentages (0-100)
+- Never sacrifice expertise for availability
+- For ambiguous tickets, POTENTIAL TICKET must identify the most probable intent
 - Only return valid JSON, no additional text
 - Ensure employee_id matches the id field from the employee data"""
         

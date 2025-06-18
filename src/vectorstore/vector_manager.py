@@ -44,14 +44,33 @@ class VectorStoreManager:
     @observe()
     def add_documents(self, documents: List[str], metadatas: List[Dict] = None) -> None:
         """Add documents to the vector store."""
-        # Split documents into chunks
+        # Split documents into chunks and properly assign metadata
         texts = []
-        for doc in documents:
+        chunk_metadatas = []
+        
+        for i, doc in enumerate(documents):
             chunks = self.text_splitter.split_text(doc)
             texts.extend(chunks)
+            
+            # Get metadata for this document (or create default if none provided)
+            if metadatas and i < len(metadatas):
+                doc_metadata = metadatas[i].copy()
+            else:
+                doc_metadata = {"source": f"document_{i}", "document_index": i}
+            
+            # Assign the same metadata to all chunks from this document
+            # but add chunk-specific information
+            for chunk_idx, chunk in enumerate(chunks):
+                chunk_metadata = doc_metadata.copy()
+                chunk_metadata.update({
+                    "chunk_index": chunk_idx,
+                    "total_chunks": len(chunks),
+                    "chunk_length": len(chunk)
+                })
+                chunk_metadatas.append(chunk_metadata)
         
-        # Add to vector store
-        self.vectorstore.add_texts(texts, metadatas=metadatas)
+        # Add to vector store with properly matched metadata
+        self.vectorstore.add_texts(texts, metadatas=chunk_metadatas)
     
     @observe()
     def similarity_search(self, query: str, k: int = 4) -> List[Dict[str, Any]]:

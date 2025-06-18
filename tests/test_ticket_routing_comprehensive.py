@@ -52,42 +52,42 @@ def test_hr_agent_routing():
     print("RUNNING TEST CASES")
     print("=" * 80)
     
-    # Test cases with expected assignments
+    # Test cases with expected assignments (Based on ACTUAL employees in database)
     test_cases = [
         # Employee-based routing tests
         {
             "name": "Test 1: IT Support Request",
             "type": "employee",
             "query": "My computer crashed and I can't access my work files. The screen keeps showing a blue error.",
-            "expected": "Alice Johnson",
+            "expected": "John Doe",  # Software Engineer - best fit for technical issues
             "category": "IT Support"
         },
         {
             "name": "Test 2: HR Policy Question",
             "type": "employee", 
             "query": "I need to understand our vacation policy and how to request time off for next month.",
-            "expected": "Bob Smith",
+            "expected": "Melanie Anna",  # Product Manager - handles business processes
             "category": "HR"
         },
         {
             "name": "Test 3: Accounting/Finance Query",
             "type": "employee",
             "query": "I have questions about my expense report and reimbursement process for business travel.",
-            "expected": "Charlie Davis",
+            "expected": "Jane Smith",  # Data Analyst - Excel, Statistics for financial analysis
             "category": "Finance"
         },
         {
             "name": "Test 4: Legal Compliance Issue",
             "type": "employee",
             "query": "I need guidance on contract compliance and regulatory requirements for our new client.",
-            "expected": "Diana Wilson",
+            "expected": "Melanie Anna",  # Product Manager - closest to business/legal processes
             "category": "Legal"
         },
         {
             "name": "Test 5: Marketing Campaign",
             "type": "employee",
             "query": "We need to develop a new marketing strategy for our product launch next quarter.",
-            "expected": "Eve Brown",
+            "expected": "Melanie Anna",  # Product Manager - product launch and strategy expertise
             "category": "Marketing"
         },
         
@@ -110,21 +110,21 @@ def test_hr_agent_routing():
             "name": "Test 8: Mixed - Employee + Policy",
             "type": "employee",
             "query": "I need HR help with understanding our company's diversity and inclusion policies.",
-            "expected": "Bob Smith",
+            "expected": "Melanie Anna",  # Product Manager - business processes
             "category": "HR + Policy"
         },
         {
             "name": "Test 9: Technical Implementation",
             "type": "employee",
             "query": "I need help implementing a new database system and configuring the network settings.",
-            "expected": "Alice Johnson",
+            "expected": "John Doe",  # Software Engineer - Python, API Development
             "category": "IT Support"
         },
         {
             "name": "Test 10: Financial Analysis",
             "type": "employee",
             "query": "Can you help me analyze the quarterly financial reports and budget projections?",
-            "expected": "Charlie Davis",
+            "expected": "Jane Smith",  # Data Analyst - SQL, Python, Excel, Statistics
             "category": "Finance"
         }
     ]
@@ -290,19 +290,25 @@ def simulate_processing(test_case):
         else:
             return "Document-based response"
     
-    # Employee assignment logic based on keywords
+    # Employee assignment logic based on keywords (using ACTUAL employees)
     if 'computer' in query or 'technical' in query or 'database' in query or 'network' in query:
-        return "Alice Johnson"  # IT
+        return "John Doe"  # Software Engineer
     elif 'vacation' in query or 'hr' in query or 'diversity' in query or 'inclusion' in query:
-        return "Bob Smith"  # HR
+        return "Melanie Anna"  # Product Manager (handles business processes)
     elif 'expense' in query or 'financial' in query or 'budget' in query or 'finance' in query:
-        return "Charlie Davis"  # Finance
+        return "Jane Smith"  # Data Analyst (Excel, Statistics)
     elif 'legal' in query or 'compliance' in query or 'contract' in query:
-        return "Diana Wilson"  # Legal
+        return "Melanie Anna"  # Product Manager (closest to business/legal)
     elif 'marketing' in query or 'strategy' in query or 'campaign' in query:
-        return "Eve Brown"  # Marketing
+        return "Melanie Anna"  # Product Manager (product strategy)
+    elif 'machine learning' in query or 'ml' in query or 'ai' in query:
+        return "Alex Johnson"  # Machine Learning Engineer
+    elif 'design' in query or 'ui' in query or 'ux' in query:
+        return "Alice Johnson"  # UI/UX Designer
+    elif 'data' in query or 'analysis' in query:
+        return "Jane Smith"  # Data Analyst
     else:
-        return "Alice Johnson"  # Default to IT
+        return "John Doe"  # Default to Software Engineer
 
 def extract_employee_from_result(result):
     """Extract employee name from various result formats."""
@@ -312,8 +318,9 @@ def extract_employee_from_result(result):
             if key in result and result[key]:
                 return result[key]
     elif isinstance(result, str):
-        # Look for employee names in the result string
-        employee_names = ['Alice Johnson', 'Bob Smith', 'Charlie Davis', 'Diana Wilson', 'Eve Brown']
+        # Look for ACTUAL employee names in the result string
+        employee_names = ['John Doe', 'Jane Smith', 'Alice Johnson', 'Melanie Anna', 'Alex Johnson', 
+                         'mounir ta', 'cherouali', 'YN Kerdel']
         for name in employee_names:
             if name in result:
                 return name
