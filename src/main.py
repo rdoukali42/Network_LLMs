@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 from langfuse import observe
 
 from config.config_loader import config_loader
-from agents.base_agent import MaestroAgent, DataGuardianAgent, HRAgent
+from agents import MaestroAgent, DataGuardianAgent, HRAgent
 from tools.custom_tools import DocumentAnalysisTool, CalculatorTool
 from tools.availability_tool import AvailabilityTool
 from vectorstore.vector_manager import VectorStoreManager

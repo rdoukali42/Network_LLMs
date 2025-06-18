@@ -22,7 +22,7 @@ def test_agents_with_tools():
     try:
         # Import components
         from config.config_loader import config_loader
-        from agents.base_agent import MaestroAgent
+        from agents import MaestroAgent
         from tools.custom_tools import CalculatorTool, DocumentAnalysisTool
         
         # Load config

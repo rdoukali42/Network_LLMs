@@ -11,7 +11,7 @@ import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'src'))
 
 from config.config_loader import ConfigLoader
-from agents.base_agent import MaestroAgent, DataGuardianAgent
+from agents import MaestroAgent, DataGuardianAgent
 from tools.custom_tools import CalculatorTool, DocumentAnalysisTool
 
 
