@@ -11,7 +11,13 @@ import json
 import base64
 import speech_recognition as sr
 from typing import Dict, Any, List, Tuple, Optional
-from .base_agent import BaseAgent
+
+# Handle base agent import with fallback for standalone execution
+try:
+    from .base_agent import BaseAgent
+except ImportError:
+    # Fallback to absolute import for standalone execution
+    from base_agent import BaseAgent
 
 # Try to import langfuse decorators, fallback if not available
 try:

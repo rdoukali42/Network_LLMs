@@ -137,18 +137,94 @@ class MultiAgentWorkflow:
         state = state.copy()
         state["current_step"] = "hr_agent"
         
+        # Ensure results dict exists and preserve existing data
+        if "results" not in state:
+            state["results"] = {}
+        else:
+            # Make a copy of existing results to preserve them
+            state["results"] = state["results"].copy()
+        
         # Get query
         query = state.get("query", "")
         
         # Run HR Agent (AvailabilityTool will automatically filter current user)
         if "hr_agent" in self.agents:
             hr_result = self.agents["hr_agent"].run({"query": query})
-            state["results"]["hr_agent"] = hr_result.get("result", "No employee found")
-            state["results"]["hr_action"] = hr_result.get("action", "no_assignment")
-            state["results"]["employee_data"] = hr_result.get("employee_data", None)
+            
+            # DEBUG: Print HR result to understand structure
+            print("🔍 WORKFLOW DEBUG - HR Agent result:")
+            print(f"   Status: {hr_result.get('status')} (type: {type(hr_result.get('status'))})")
+            print(f"   Status value: {getattr(hr_result.get('status'), 'value', 'No value attr')}")
+            print(f"   Keys in hr_result: {list(hr_result.keys())}")
+            print(f"   Matched employees count: {len(hr_result.get('matched_employees', []))}")
+            print(f"   Recommended assignment: {hr_result.get('recommended_assignment')}")
+            
+            # Handle new Pydantic response format - status is a StatusEnum object
+            status = hr_result.get("status")
+            status_check = status and (str(status) == "StatusEnum.SUCCESS" or status.value == "success")
+            print(f"🔍 WORKFLOW DEBUG - Status check: {status_check}")
+            
+            if status_check:
+                print("✅ WORKFLOW DEBUG - Status check passed, processing employees...")
+                # Extract information from new structured response
+                matched_employees = hr_result.get("matched_employees", [])
+                recommended_assignment = hr_result.get("recommended_assignment")
+                
+                print(f"   Matched employees: {len(matched_employees)}")
+                print(f"   Recommended assignment: {recommended_assignment}")
+                
+                if matched_employees and recommended_assignment:
+                    print("✅ WORKFLOW DEBUG - Found employees and assignment, processing...")
+                    # Get the recommended employee data
+                    recommended_employee = next(
+                        (emp for emp in matched_employees if emp["employee_id"] == recommended_assignment), 
+                        matched_employees[0] if matched_employees else None
+                    )
+                    
+                    print(f"   Recommended employee: {recommended_employee.get('name') if recommended_employee else 'None'}")
+                    
+                    if recommended_employee:
+                        print("✅ WORKFLOW DEBUG - Creating employee data and setting assignment...")
+                        # Convert to legacy format for compatibility
+                        legacy_employee_data = {
+                            "id": recommended_employee["employee_id"],
+                            "username": recommended_employee["employee_id"], 
+                            "full_name": recommended_employee["name"],
+                            "email": recommended_employee["email"],
+                            "department": recommended_employee["department"],
+                            "role_in_company": f"Score: {recommended_employee['overall_score']:.2f}",
+                            "expertise": ", ".join(recommended_employee["skills"][:3]),
+                            "responsibilities": recommended_employee["match_reasoning"],
+                            "availability_status": recommended_employee["availability_status"]
+                        }
+                        
+                        state["results"]["hr_agent"] = hr_result.get("assignment_reasoning", "Employee assigned")
+                        state["results"]["hr_action"] = "assign"
+                        state["results"]["employee_data"] = legacy_employee_data
+                        state["results"]["hr_response"] = hr_result  # Store full response for future use
+                        print("✅ WORKFLOW DEBUG - Assignment data set successfully!")
+                    else:
+                        print("❌ WORKFLOW DEBUG - No recommended employee found")
+                        state["results"]["hr_agent"] = "No suitable employee found"
+                        state["results"]["hr_action"] = "no_assignment"
+                        state["results"]["employee_data"] = None
+                        state["results"]["hr_response"] = hr_result
+                else:
+                    state["results"]["hr_agent"] = "No suitable employees available at the moment"
+                    state["results"]["hr_action"] = "no_assignment" 
+                    state["results"]["employee_data"] = None
+                    state["results"]["hr_response"] = hr_result
+            else:
+                # Handle error responses
+                error_message = hr_result.get("error_message", "HR Agent processing failed")
+                state["results"]["hr_agent"] = error_message
+                state["results"]["hr_action"] = "no_assignment"
+                state["results"]["employee_data"] = None
+                state["results"]["hr_response"] = hr_result
         else:
             state["results"]["hr_agent"] = "HR Agent not available"
             state["results"]["hr_action"] = "no_assignment"
+            state["results"]["employee_data"] = None
         
         return state
     
@@ -158,10 +234,27 @@ class MultiAgentWorkflow:
         state = state.copy()
         state["current_step"] = "vocal_assistant"
         
+        # Ensure results dict exists and preserve existing data
+        if "results" not in state:
+            state["results"] = {}
+        else:
+            # Make a copy of existing results to preserve them
+            state["results"] = state["results"].copy()
+        
         # Get query and HR results
         query = state.get("query", "")
         hr_action = state["results"].get("hr_action", "no_assignment")
         employee_data = state["results"].get("employee_data", None)
+        
+        print(f"🔍 VOCAL DEBUG - Received state:")
+        print(f"   HR Action: {hr_action}")
+        print(f"   Employee Data: {'Yes' if employee_data else 'No'}")
+        print(f"   Results keys: {list(state['results'].keys()) if 'results' in state else 'No results'}")
+        if employee_data:
+            print(f"   Employee Data Details: {employee_data}")
+            print(f"   Employee Name: {employee_data.get('full_name', 'Unknown')}")
+        else:
+            print(f"   Employee Data is None or empty")
         
         if hr_action == "assign" and employee_data:
             # Prepare ticket data from query and state
@@ -209,11 +302,11 @@ class MultiAgentWorkflow:
             # Voice call initiated - provide call information
             final_response = f"""Your ticket has been assigned to {call_info.get('employee_name', 'an expert')} who will contact you shortly.
 
-A voice call is being initiated to discuss your issue in detail and provide a personalized solution.
+A voice call is being initiated to discuss your issue in detail and provide a personalized solution."""
 
-Please be ready to answer the call to discuss: {call_info.get('ticket_subject', 'your request')}
+# Please be ready to answer the call to discuss: {call_info.get('ticket_subject', 'your request')}
 
-The assigned expert will call you to resolve this matter efficiently."""
+# The assigned expert will call you to resolve this matter efficiently."""
         else:
             # Standard HR referral response
             final_response = f"""I couldn't find a direct answer in our knowledge base for your request, but I can help connect you with the right expert.

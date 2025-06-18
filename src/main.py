@@ -90,7 +90,7 @@ class AISystem:
         
         # Add VocalAssistant if available
         try:
-            from .agents.vocal_assistant import VocalAssistantAgent
+            from agents.vocal_assistant import VocalAssistantAgent
             agents["vocal_assistant"] = VocalAssistantAgent(config=self.config, tools=[])
             print("✅ VocalAssistant agent loaded successfully")
         except ImportError as e:

@@ -351,11 +351,174 @@ def show_backup_tools():
         st.info("💡 Regular backups are recommended to protect employee data")
 
 
+def show_bulk_actions():
+    """Show bulk actions for employee management."""
+    st.markdown("### 🔄 Bulk Employee Actions")
+    st.markdown("Perform actions on all employees at once.")
+    
+    # Get current employee stats
+    from database import db_manager
+    employees = db_manager.get_all_employees()
+    active_employees = [emp for emp in employees if emp.get('is_active', True)]
+    
+    if not active_employees:
+        st.warning("No active employees found.")
+        return
+    
+    # Show current status summary
+    st.markdown("#### 📊 Current Status Summary")
+    col1, col2, col3, col4 = st.columns(4)
+    
+    status_counts = {}
+    for emp in active_employees:
+        status = emp.get('availability_status', 'Offline')
+        status_counts[status] = status_counts.get(status, 0) + 1
+    
+    with col1:
+        st.metric("🟢 Available", status_counts.get('Available', 0))
+    with col2:
+        st.metric("🟡 Busy", status_counts.get('Busy', 0))
+    with col3:
+        st.metric("🔴 In Meeting", status_counts.get('In Meeting', 0))
+    with col4:
+        st.metric("⚫ Offline", status_counts.get('Offline', 0))
+    
+    st.markdown("---")
+    
+    # Bulk availability actions
+    st.markdown("#### 🎯 Bulk Availability Actions")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("**Set All Employees to Available**")
+        st.markdown("This will set all active employees to 'Available' status.")
+        
+        if st.button("🟢 Set All Available", type="primary", use_container_width=True):
+            success_count = 0
+            error_count = 0
+            errors = []
+            
+            with st.spinner("Updating all employees to Available..."):
+                for emp in active_employees:
+                    username = emp.get('username')
+                    if username:
+                        success, message = db_manager.update_employee_status(username, "Available")
+                        if success:
+                            success_count += 1
+                        else:
+                            error_count += 1
+                            errors.append(f"{username}: {message}")
+            
+            if success_count > 0:
+                st.success(f"✅ Successfully updated {success_count} employees to Available status!")
+            
+            if error_count > 0:
+                st.error(f"❌ Failed to update {error_count} employees:")
+                for error in errors[:5]:  # Show first 5 errors
+                    st.text(f"  • {error}")
+                if len(errors) > 5:
+                    st.text(f"  ... and {len(errors) - 5} more errors")
+            
+            # Force refresh to show updated data
+            st.rerun()
+    
+    with col2:
+        st.markdown("**Set All Employees to Offline**")
+        st.markdown("This will set all active employees to 'Offline' status.")
+        
+        if st.button("⚫ Set All Offline", use_container_width=True):
+            success_count = 0
+            error_count = 0
+            errors = []
+            
+            with st.spinner("Updating all employees to Offline..."):
+                for emp in active_employees:
+                    username = emp.get('username')
+                    if username:
+                        success, message = db_manager.update_employee_status(username, "Offline")
+                        if success:
+                            success_count += 1
+                        else:
+                            error_count += 1
+                            errors.append(f"{username}: {message}")
+            
+            if success_count > 0:
+                st.success(f"✅ Successfully updated {success_count} employees to Offline status!")
+            
+            if error_count > 0:
+                st.error(f"❌ Failed to update {error_count} employees:")
+                for error in errors[:5]:  # Show first 5 errors
+                    st.text(f"  • {error}")
+                if len(errors) > 5:
+                    st.text(f"  ... and {len(errors) - 5} more errors")
+            
+            # Force refresh to show updated data
+            st.rerun()
+    
+    st.markdown("---")
+    
+    # Additional bulk actions
+    st.markdown("#### ⚙️ Other Bulk Actions")
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.markdown("**Set All Busy**")
+        if st.button("🟡 Set All Busy", use_container_width=True):
+            success_count = 0
+            with st.spinner("Setting all employees to Busy..."):
+                for emp in active_employees:
+                    username = emp.get('username')
+                    if username:
+                        success, _ = db_manager.update_employee_status(username, "Busy")
+                        if success:
+                            success_count += 1
+            
+            st.success(f"✅ Updated {success_count} employees to Busy status!")
+            st.rerun()
+    
+    with col2:
+        st.markdown("**Set All In Meeting**")
+        if st.button("🔴 Set All In Meeting", use_container_width=True):
+            success_count = 0
+            with st.spinner("Setting all employees to In Meeting..."):
+                for emp in active_employees:
+                    username = emp.get('username')
+                    if username:
+                        success, _ = db_manager.update_employee_status(username, "In Meeting")
+                        if success:
+                            success_count += 1
+            
+            st.success(f"✅ Updated {success_count} employees to In Meeting status!")
+            st.rerun()
+    
+    with col3:
+        st.markdown("**Set All Do Not Disturb**")
+        if st.button("🚫 Set All DND", use_container_width=True):
+            success_count = 0
+            with st.spinner("Setting all employees to Do Not Disturb..."):
+                for emp in active_employees:
+                    username = emp.get('username')
+                    if username:
+                        success, _ = db_manager.update_employee_status(username, "Do Not Disturb")
+                        if success:
+                            success_count += 1
+            
+            st.success(f"✅ Updated {success_count} employees to Do Not Disturb status!")
+            st.rerun()
+    
+    # Warning and info
+    st.markdown("---")
+    st.warning("⚠️ **Warning**: These actions will affect ALL active employees. This cannot be undone.")
+    st.info("💡 **Tip**: Use these actions for scenarios like end-of-day shutdown, emergency situations, or mass status updates.")
+
+
 def show_employee_management():
     """Main employee management interface."""
     st.markdown("## 👥 Employee Management")
     
-    tab1, tab2, tab3, tab4 = st.tabs(["📝 Register New", "👤 View Employees", "📊 Statistics", "💾 Backup"])
+    tab1, tab2, tab3, tab4, tab5 = st.tabs(["📝 Register New", "👤 View Employees", "📊 Statistics", "� Bulk Actions", "�💾 Backup"])
     
     with tab1:
         show_registration_form()
@@ -367,4 +530,7 @@ def show_employee_management():
         show_employee_stats()
     
     with tab4:
+        show_bulk_actions()
+    
+    with tab5:
         show_backup_tools()
