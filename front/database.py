@@ -330,7 +330,7 @@ class DatabaseManager:
                 conn.execute("""
                     UPDATE employees_data_table 
                     SET availability_status = 'Offline'
-                    WHERE datetime(last_seen) < datetime('now', '-5 minutes')
+                    WHERE datetime(last_seen) < datetime('now', '-15 minutes')
                     AND availability_status != 'Offline'
                 """)
                 

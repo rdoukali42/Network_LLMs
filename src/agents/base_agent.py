@@ -211,7 +211,7 @@ Create a complete response that directly addresses the ticket."""
             "document chunks contain information on",
             "completely lack information",
             "no such information exists in the provided documents",
-            "confidence level regarding information",
+            # "confidence level regarding information",
             "no facts, procedures, or guidance",
             "are irrelevant to the user's query",
             "do not contain any information relevant",
