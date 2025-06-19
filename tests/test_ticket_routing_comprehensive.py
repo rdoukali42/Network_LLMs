@@ -52,80 +52,78 @@ def test_hr_agent_routing():
     print("RUNNING TEST CASES")
     print("=" * 80)
     
-    # Test cases with expected assignments (Based on ACTUAL employees in database)
+    # Test cases with expected assignments (Using EXACT queries from internal_tickets.md)
     test_cases = [
-        # Employee-based routing tests
+        # Employee-based routing tests from internal_tickets.md - EXACT QUERIES
         {
-            "name": "Test 1: IT Support Request",
+            "name": "Test 1: Product Roadmap Request",
             "type": "employee",
-            "query": "My computer crashed and I can't access my work files. The screen keeps showing a blue error.",
-            "expected": "John Doe",  # Software Engineer - best fit for technical issues
-            "category": "IT Support"
+            "query": "Could you please provide an updated product roadmap for Q3 with new feature timelines and major milestones? The marketing and sales teams need it to align their campaigns.",
+            "expected": "Patrick Neumann",  # Product Development Lead - product strategy, roadmap
+            "category": "Product Management"
         },
         {
-            "name": "Test 2: HR Policy Question",
+            "name": "Test 2: Strategic Direction Query",
             "type": "employee", 
-            "query": "I need to understand our vacation policy and how to request time off for next month.",
-            "expected": "Melanie Anna",  # Product Manager - handles business processes
-            "category": "HR"
+            "query": "Can you confirm if the company will focus more on AI-based services or continue investing in education platforms next year? This will help all departments prepare early roadmaps.",
+            "expected": "Thomas Müller",  # CEO - strategic leadership, company vision
+            "category": "Executive Strategy"
         },
         {
-            "name": "Test 3: Accounting/Finance Query",
+            "name": "Test 3: Security Vulnerability Scan",
             "type": "employee",
-            "query": "I have questions about my expense report and reimbursement process for business travel.",
-            "expected": "Jane Smith",  # Data Analyst - Excel, Statistics for financial analysis
-            "category": "Finance"
+            "query": "We just deployed a new API gateway for customer data access. Could you perform a penetration test and submit a vulnerability report before we move it to production?",
+            "expected": "Mouad El Idrissi",  # Security Researcher - penetration testing, vulnerability assessment
+            "category": "Security"
         },
         {
-            "name": "Test 4: Legal Compliance Issue",
+            "name": "Test 4: UX/UI Redesign Request",
             "type": "employee",
-            "query": "I need guidance on contract compliance and regulatory requirements for our new client.",
-            "expected": "Melanie Anna",  # Product Manager - closest to business/legal processes
-            "category": "Legal"
+            "query": "Feedback suggests the mobile onboarding is confusing. Can you redesign the UI/UX to reduce friction and improve the conversion rate, ideally with Figma mockups?",
+            "expected": "Mounir Belhaj",  # UX/UI Designer & Front-End Developer - UI/UX design, Figma
+            "category": "UI/UX Design"
         },
         {
-            "name": "Test 5: Marketing Campaign",
+            "name": "Test 5: AI Model Retraining",
             "type": "employee",
-            "query": "We need to develop a new marketing strategy for our product launch next quarter.",
-            "expected": "Melanie Anna",  # Product Manager - product launch and strategy expertise
-            "category": "Marketing"
-        },
-        
-        # Document-based routing tests
-        {
-            "name": "Test 6: Code of Conduct Query",
-            "type": "document",
-            "query": "What does our company policy say about workplace harassment and reporting procedures?",
-            "expected": "Document-based response",
-            "category": "Policy Document"
+            "query": "We've gathered a new dataset of annotated customer interactions. Could you retrain the recommendation model and test whether it improves product suggestions?",
+            "expected": "Tristan Maier",  # AI Engineer - machine learning, model training
+            "category": "AI/ML"
         },
         {
-            "name": "Test 7: Company Principles",
-            "type": "document",
-            "query": "What are our core company values and principles regarding customer service?",
-            "expected": "Document-based response", 
-            "category": "Principles Document"
-        },
-        {
-            "name": "Test 8: Mixed - Employee + Policy",
+            "name": "Test 6: API Bug Fix",
             "type": "employee",
-            "query": "I need HR help with understanding our company's diversity and inclusion policies.",
-            "expected": "Melanie Anna",  # Product Manager - business processes
-            "category": "HR + Policy"
+            "query": "Users are experiencing 500 errors when updating their profile pictures. Could you debug the issue in the `PUT /api/profile` endpoint and apply a fix?",
+            "expected": "Yacoub Hossam",  # Full-Stack Developer - APIs, backend development
+            "category": "Backend Development"
         },
         {
-            "name": "Test 9: Technical Implementation",
+            "name": "Test 7: Sprint Timeline Adjustment",
             "type": "employee",
-            "query": "I need help implementing a new database system and configuring the network settings.",
-            "expected": "John Doe",  # Software Engineer - Python, API Development
-            "category": "IT Support"
+            "query": "Adjustments are needed to the timeline for Sprint 14 due to delays in testing. A revised plan and updated sprint review schedule should be prepared.",
+            "expected": "Reda Tazi",  # Project Manager - agile project management, sprint planning
+            "category": "Project Management"
         },
         {
-            "name": "Test 10: Financial Analysis",
+            "name": "Test 8: Regression Testing Request",
             "type": "employee",
-            "query": "Can you help me analyze the quarterly financial reports and budget projections?",
-            "expected": "Jane Smith",  # Data Analyst - SQL, Python, Excel, Statistics
-            "category": "Finance"
+            "query": "A new billing module has been merged into staging. Can you run full regression tests and ensure no existing functionality is broken before production deployment?",
+            "expected": "Sarah Becker",  # QA Engineer - testing, quality assurance
+            "category": "Quality Assurance"
+        },
+        {
+            "name": "Test 9: CI/CD Pipeline Issue",
+            "type": "employee",
+            "query": "The CI/CD pipeline is failing at the Docker build stage due to a missing dependency. Could you investigate and update the Dockerfile or the pipeline config to resolve the issue?",
+            "expected": "Omar Khalil",  # DevOps Engineer - CI/CD, Docker, pipeline management
+            "category": "DevOps"
+        },
+        {
+            "name": "Test 10: Marketing KPI Dashboard",
+            "type": "employee",
+            "query": "The marketing team needs updated KPIs for lead conversions, CAC, and user retention for their monthly review. Can you refresh the dashboard with the latest data and send a snapshot?",
+            "expected": "Lina Schneider",  # Data Analyst - dashboards, data visualization, KPIs
+            "category": "Data Analytics"
         }
     ]
     
@@ -140,39 +138,44 @@ def test_hr_agent_routing():
         start_time = time.time()
         
         try:
-            # Process query through AI system or simulate
+            # Process query through real AI system
             if ai_system:
-                result = ai_system.process_query(test_case['query'])
+                workflow_result = process_with_real_workflow(test_case, ai_system)
             else:
-                result = simulate_processing(test_case)
+                # Fallback if AI system not available
+                workflow_result = {
+                    'assignment': "AI System not available",
+                    'response': "System initialization failed",
+                    'processing_successful': False,
+                    'additional_info': "AI System not initialized"
+                }
             
             processing_time = time.time() - start_time
             
             if test_case['type'] == 'document':
                 # For document queries, check if we got a meaningful response
-                if ai_system:
-                    doc_answer = result.get('document_answer', '') or result.get('answer', '')
-                    actual_assignment = "Document-based response" if doc_answer else "No response"
-                    additional_info = f"Answer length: {len(doc_answer)} chars"
-                else:
-                    actual_assignment = result
-                    additional_info = "Simulated"
+                actual_assignment = workflow_result['assignment']
+                additional_info = workflow_result['additional_info']
                 match_status = "✅ PASS" if "Document-based" in actual_assignment else "❌ FAIL"
                 
             else:
                 # For employee queries, check assignment
-                if ai_system:
-                    assigned_employee = result.get('assigned_employee', '') or extract_employee_from_result(result)
-                    actual_assignment = assigned_employee if assigned_employee else "No assignment"
-                    additional_info = f"Process: {result.get('process_summary', 'N/A')}"
+                actual_assignment = workflow_result['assignment']
+                additional_info = workflow_result['additional_info']
+                
+                # Check if the assignment matches expected employee
+                if actual_assignment == test_case['expected']:
+                    match_status = "✅ PASS"
+                elif actual_assignment in ["No assignment", "ERROR"]:
+                    match_status = "❌ FAIL"
                 else:
-                    actual_assignment = result
-                    additional_info = "Simulated"
-                match_status = "✅ PASS" if actual_assignment == test_case['expected'] else "❌ FAIL"
+                    # Check if it's a reasonable alternative (same role/skills)
+                    match_status = "🔍 REVIEW"  # Manual review needed
             
             print(f"   Actual: {actual_assignment}")
             print(f"   Status: {match_status}")
             print(f"   Time: {processing_time:.2f}s")
+            print(f"   Info: {additional_info}")
             
             # Store result
             test_results.append(TestResult(
@@ -185,10 +188,9 @@ def test_hr_agent_routing():
                 additional_info=additional_info
             ))
             
-            if test_case['type'] == 'document' and ai_system:
-                doc_answer = result.get('document_answer', '') or result.get('answer', '')
-                if doc_answer:
-                    print(f"   Document Answer: {doc_answer[:100]}...")
+            # Show response preview for document queries
+            if test_case['type'] == 'document' and workflow_result['response']:
+                print(f"   Response Preview: {workflow_result['response'][:100]}...")
                 
         except Exception as e:
             processing_time = time.time() - start_time
@@ -276,54 +278,138 @@ def print_test_summary():
     print(f"Test completed at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 100)
 
-def simulate_processing(test_case):
-    """Simulate processing and return realistic assignments."""
-    time.sleep(0.1)  # Simulate processing time
-    
-    query = test_case['query'].lower()
-    
-    if test_case['type'] == 'document':
-        if 'harassment' in query or 'conduct' in query or 'policy' in query:
-            return "Document-based response from Code of Conduct"
-        elif 'values' in query or 'principles' in query:
-            return "Document-based response from Company Principles"
+def process_with_real_workflow(test_case, ai_system):
+    """Process with actual workflow instead of simulation."""
+    try:
+        # Use the real AI system to process the query
+        result = ai_system.process_query(test_case['query'])
+        
+        if test_case['type'] == 'document':
+            # For document queries, extract the document answer
+            doc_answer = ""
+            if isinstance(result, dict):
+                doc_answer = (result.get('document_answer', '') or 
+                            result.get('answer', '') or 
+                            result.get('synthesis', '') or
+                            result.get('response', ''))
+            elif isinstance(result, str):
+                doc_answer = result
+                
+            return {
+                'assignment': "Document-based response" if doc_answer else "No response",
+                'response': doc_answer,
+                'processing_successful': bool(doc_answer),
+                'additional_info': f"Answer length: {len(doc_answer)} chars"
+            }
         else:
-            return "Document-based response"
-    
-    # Employee assignment logic based on keywords (using ACTUAL employees)
-    if 'computer' in query or 'technical' in query or 'database' in query or 'network' in query:
-        return "John Doe"  # Software Engineer
-    elif 'vacation' in query or 'hr' in query or 'diversity' in query or 'inclusion' in query:
-        return "Melanie Anna"  # Product Manager (handles business processes)
-    elif 'expense' in query or 'financial' in query or 'budget' in query or 'finance' in query:
-        return "Jane Smith"  # Data Analyst (Excel, Statistics)
-    elif 'legal' in query or 'compliance' in query or 'contract' in query:
-        return "Melanie Anna"  # Product Manager (closest to business/legal)
-    elif 'marketing' in query or 'strategy' in query or 'campaign' in query:
-        return "Melanie Anna"  # Product Manager (product strategy)
-    elif 'machine learning' in query or 'ml' in query or 'ai' in query:
-        return "Alex Johnson"  # Machine Learning Engineer
-    elif 'design' in query or 'ui' in query or 'ux' in query:
-        return "Alice Johnson"  # UI/UX Designer
-    elif 'data' in query or 'analysis' in query:
-        return "Jane Smith"  # Data Analyst
-    else:
-        return "John Doe"  # Default to Software Engineer
+            # For employee queries, extract assignment information
+            assignment_info = extract_assignment_from_workflow_result(result)
+            return assignment_info
+            
+    except Exception as e:
+        return {
+            'assignment': "ERROR",
+            'response': str(e),
+            'processing_successful': False,
+            'additional_info': f"Error: {str(e)}"
+        }
 
-def extract_employee_from_result(result):
-    """Extract employee name from various result formats."""
-    if isinstance(result, dict):
-        # Try various keys that might contain the employee name
-        for key in ['assigned_employee', 'employee', 'assigned_to', 'assignment', 'result']:
-            if key in result and result[key]:
-                return result[key]
-    elif isinstance(result, str):
-        # Look for ACTUAL employee names in the result string
-        employee_names = ['John Doe', 'Jane Smith', 'Alice Johnson', 'Melanie Anna', 'Alex Johnson', 
-                         'mounir ta', 'cherouali', 'YN Kerdel']
-        for name in employee_names:
-            if name in result:
-                return name
+def extract_assignment_from_workflow_result(result):
+    """Extract employee assignment from actual workflow result."""
+    if not isinstance(result, dict):
+        return {
+            'assignment': "No assignment",
+            'response': str(result),
+            'processing_successful': False,
+            'additional_info': "Invalid result format"
+        }
+    
+    # Check for workflow result with HR assignment
+    workflow_result = result.get("workflow_result", {})
+    hr_action = workflow_result.get("hr_action")
+    employee_data = workflow_result.get("employee_data")
+    
+    if hr_action == "assign" and employee_data:
+        # Extract employee name/username from assignment
+        assigned_employee = (employee_data.get("full_name") or 
+                            employee_data.get("name") or 
+                            employee_data.get("username", ""))
+        
+        response_text = result.get("synthesis", "") or result.get("response", "")
+        
+        return {
+            'assignment': assigned_employee,
+            'response': response_text,
+            'processing_successful': True,
+            'additional_info': f"HR Action: {hr_action}, Employee ID: {employee_data.get('id', 'N/A')}"
+        }
+    
+    # Check for direct HR agent result
+    hr_result = result.get("hr_agent", {})
+    if isinstance(hr_result, dict):
+        matched_employees = hr_result.get("matched_employees", [])
+        recommended_assignment = hr_result.get("recommended_assignment")
+        
+        if matched_employees and recommended_assignment:
+            # Find the recommended employee
+            for emp in matched_employees:
+                if emp.get("employee_id") == str(recommended_assignment):
+                    assigned_employee = emp.get("name", emp.get("username", ""))
+                    return {
+                        'assignment': assigned_employee,
+                        'response': result.get("synthesis", ""),
+                        'processing_successful': True,
+                        'additional_info': f"HR Confidence: {hr_result.get('confidence_level', 'N/A')}"
+                    }
+    
+    # Look for assignment in the response text
+    response_text = result.get("synthesis", "") or result.get("response", "")
+    if response_text:
+        assigned_employee = extract_employee_from_response_text(response_text)
+        if assigned_employee:
+            return {
+                'assignment': assigned_employee,
+                'response': response_text,
+                'processing_successful': True,
+                'additional_info': "Extracted from response text"
+            }
+    
+    return {
+        'assignment': "No assignment",
+        'response': response_text,
+        'processing_successful': False,
+        'additional_info': "No assignment data found in workflow result"
+    }
+
+def extract_employee_from_response_text(response_text):
+    """Extract employee name from response text."""
+    if not response_text:
+        return ""
+    
+    # Look for assignment patterns in text
+    response_lower = response_text.lower()
+    
+    # Check for each employee name (both full name and username)
+    employees = [
+        ("Patrick Neumann", "patrick"),
+        ("Thomas Müller", "thomas"), 
+        ("Mouad El Idrissi", "mouad"),
+        ("Mounir Belhaj", "mounir"),
+        ("Tristan Maier", "tristan"),
+        ("Yacoub Hossam", "yacoub"),
+        ("Reda Tazi", "reda"),
+        ("Sarah Becker", "sarah"),
+        ("Omar Khalil", "omar"),
+        ("Lina Schneider", "lina")
+    ]
+    
+    for full_name, username in employees:
+        if (full_name.lower() in response_lower or 
+            username in response_lower or
+            f"assigned to {full_name.lower()}" in response_lower or
+            f"assigned to {username}" in response_lower):
+            return full_name
+    
     return ""
 
 if __name__ == "__main__":

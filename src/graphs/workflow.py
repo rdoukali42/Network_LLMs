@@ -185,10 +185,18 @@ class MultiAgentWorkflow:
                     
                     if recommended_employee:
                         print("✅ WORKFLOW DEBUG - Creating employee data and setting assignment...")
+                        # Add this debug block before creating legacy_employee_data (around line 166)
+                        print("📋📋📋📋📋📋📋🔍 DEBUG: Checking employee data keys...")
+                        print(f"📋📋📋📋📋📋📋 Recommended Employee Raw Data: {recommended_employee}")
+                        print(f"📋 📋📋📋📋📋Available Keys: {list(recommended_employee.keys())}")
+                        print("📋📋📋📋📋📋🔍 Key-Value pairs:")
+                        for key, value in recommended_employee.items():
+                            print(f"   → {key}: {value}")
+                        print("=" * 50)
                         # Convert to legacy format for compatibility
                         legacy_employee_data = {
                             "id": recommended_employee["employee_id"],
-                            "username": recommended_employee["employee_id"], 
+                            "username": recommended_employee["username"], 
                             "full_name": recommended_employee["name"],
                             "email": recommended_employee["email"],
                             "department": recommended_employee["department"],

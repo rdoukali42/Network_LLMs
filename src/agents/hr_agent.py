@@ -261,7 +261,8 @@ CRITICAL RULES:
 - Never sacrifice expertise for availability
 - For ambiguous tickets, POTENTIAL TICKET must identify the most probable intent
 - Only return valid JSON, no additional text
-- Ensure employee_id matches the id field from the employee data"""
+- Ensure employee_id matches the id field from the employee data
+- Ensure always include employee_username and that it matches the username field from the employee data"""
         
         try:
             print(f"🤖 AI MATCHING: Sending request to AI for employee analysis...")
@@ -276,14 +277,17 @@ CRITICAL RULES:
             ai_content = ai_response.content if hasattr(ai_response, 'content') else str(ai_response)
             
             print(f"🤖 AI MATCHING: Raw AI response length: {len(ai_content)} characters")
-            print(f"🤖 AI MATCHING: AI response preview: {ai_content[:200]}...")
+            print(f"🤖 AI MATCHING: AI response preview: {ai_content}")
             
             # Extract JSON from AI response
-            json_match = re.search(r'\[.*\]', ai_content, re.DOTALL)
-            if json_match:
-                json_str = json_match.group(0)
-                ai_matches = json.loads(json_str)
-                print(f"🤖 AI MATCHING: Successfully parsed {len(ai_matches)} AI matches")
+            json_str = self._extract_json_from_response(ai_content)
+            if json_str:
+                try:
+                    ai_matches = json.loads(json_str)
+                    print(f"🤖 AI MATCHING: Successfully parsed {len(ai_matches)} AI matches")
+                except json.JSONDecodeError as e:
+                    print(f"🤖 AI MATCHING: ❌ JSON parsing error: {e}")
+                    return self._fallback_basic_matching(ticket, candidates)
             else:
                 print(f"🤖 AI MATCHING: Failed to extract JSON from AI response")
                 return self._fallback_basic_matching(ticket, candidates)
@@ -311,6 +315,7 @@ CRITICAL RULES:
                     # Create HREmployeeMatch object with AI data
                     employee_match = HREmployeeMatch(
                         employee_id=str(employee_data.get('id', match_data.get('employee_id', f'ai_match_{i}'))),
+                        username=match_data.get('employee_username', employee_data.get('username', 'unknown')),
                         name=match_data.get('employee_name', employee_data.get('full_name', 'Unknown')),
                         email=employee_data.get('email', 'unknown@company.com'),
                         department=employee_data.get('department', 'Unknown'),
@@ -353,6 +358,7 @@ CRITICAL RULES:
             try:
                 employee_match = HREmployeeMatch(
                     employee_id=str(emp.get('id', emp.get('username', 'unknown'))),
+                    username=emp.get('username', 'unknown'),
                     name=emp.get('full_name', 'Unknown'),
                     email=emp.get('email', 'unknown@company.com'),
                     department=emp.get('department', 'Unknown'),
@@ -857,3 +863,34 @@ You help ensure every ticket gets routed to the right person, even when our docu
                 "error": new_response.get("error_message", "Unknown error"),
                 "result": f"HR Agent failed: {new_response.get('error_message', 'Unknown error')}"
             }
+    
+    def _extract_json_from_response(self, content: str) -> str:
+        """Extract JSON from AI response, handling markdown code blocks and various formats."""
+        if not content:
+            raise ValueError("Empty response content")
+        
+        # First, try to find JSON inside markdown code blocks
+        markdown_patterns = [
+            r'```json\s*(.*?)\s*```',  # ```json ... ```
+            r'```\s*(.*?)\s*```',      # ``` ... ``` (generic code block)
+        ]
+        
+        for pattern in markdown_patterns:
+            match = re.search(pattern, content, re.DOTALL | re.IGNORECASE)
+            if match:
+                candidate = match.group(1).strip()
+                if candidate and (candidate.startswith('[') or candidate.startswith('{')):
+                    return candidate
+        
+        # If no markdown blocks found, try to extract JSON array directly
+        json_match = re.search(r'\[.*\]', content, re.DOTALL)
+        if json_match:
+            return json_match.group(0)
+        
+        # Try to extract JSON object
+        json_obj_match = re.search(r'\{.*\}', content, re.DOTALL)
+        if json_obj_match:
+            return json_obj_match.group(0)
+        
+        # If nothing found, return the content as-is and let JSON parser handle the error
+        return content.strip()
