@@ -378,7 +378,7 @@ class VocalAssistantAgent(BaseAgent):
                     # Apply context-aware auto-correction
                     corrected_text = self._apply_context_correction(transcription)
                     
-                    print(f"✅ Gemini transcription successful: {corrected_text}")
+                    # print(f"✅ Gemini transcription successful: {corrected_text}")
                     return corrected_text
             
             # If Gemini API fails, return a helpful error

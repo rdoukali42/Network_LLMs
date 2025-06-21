@@ -11,7 +11,7 @@ def process_ticket_with_ai(ticket_id: str, subject: str, description: str):
     """Process ticket with AI workflow."""
     try:
         # Combine subject and description for AI processing
-        query = f"Support Ticket: {subject}\n\nDetails: {description}"
+        query = f"  🎫 Support Ticket: {subject}\n  📝 Ticket-Query: {description}\n"
         
         # Process with AI workflow
         with st.spinner(f"Processing ticket {ticket_id} with AI..."):

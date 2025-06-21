@@ -66,6 +66,7 @@ class MultiAgentWorkflow:
         
         # Run Maestro preprocessing
         if "maestro" in self.agents:
+            print("     🎯 Starting Maestro Agent - Workflow coordination beginning...\n")
             maestro_result = self.agents["maestro"].run({
                 "query": query,
                 "stage": "preprocess"
@@ -88,6 +89,7 @@ class MultiAgentWorkflow:
         
         # Run Data Guardian search
         if "data_guardian" in self.agents:
+            print("     🛡️ Data Guardian Agent is searching documents.../n")
             data_guardian_result = self.agents["data_guardian"].run({
                 "query": query,
                 "search_queries": search_queries
@@ -110,6 +112,7 @@ class MultiAgentWorkflow:
         
         # Run Maestro synthesis
         if "maestro" in self.agents:
+            print("     🎯 Maestro: Consulting Data Guardian for knowledge retrieval...")
             synthesis_result = self.agents["maestro"].run({
                 "query": query,
                 "stage": "synthesize",
@@ -127,7 +130,11 @@ class MultiAgentWorkflow:
     def _route_after_synthesis(self, state: WorkflowState) -> str:
         """Route to HR agent if no sufficient answer found."""
         synthesis_status = state["results"].get("synthesis_status", "success")
-        if synthesis_status == "route_to_hr":
+        if synthesis_status == "outside_scope":
+            print("     🚫 Query outside company scope - ending workflow...\n")
+            return "end"  # End workflow for outside scope queries
+        elif synthesis_status == "route_to_hr":
+            print("     🔄 Routing to HR Agent for further assistance...\n")
             return "hr_agent"
         return "end"
     
@@ -149,50 +156,51 @@ class MultiAgentWorkflow:
         
         # Run HR Agent (AvailabilityTool will automatically filter current user)
         if "hr_agent" in self.agents:
+            print("     🤖 Starting HR Agent - Employee matching in progress.../n")
             hr_result = self.agents["hr_agent"].run({"query": query})
             
             # DEBUG: Print HR result to understand structure
-            print("🔍 WORKFLOW DEBUG - HR Agent result:")
-            print(f"   Status: {hr_result.get('status')} (type: {type(hr_result.get('status'))})")
-            print(f"   Status value: {getattr(hr_result.get('status'), 'value', 'No value attr')}")
-            print(f"   Keys in hr_result: {list(hr_result.keys())}")
-            print(f"   Matched employees count: {len(hr_result.get('matched_employees', []))}")
-            print(f"   Recommended assignment: {hr_result.get('recommended_assignment')}")
+            # print("🔍 WORKFLOW DEBUG - HR Agent result:")
+            # print(f"   Status: {hr_result.get('status')} (type: {type(hr_result.get('status'))})")
+            # print(f"   Status value: {getattr(hr_result.get('status'), 'value', 'No value attr')}")
+            # print(f"   Keys in hr_result: {list(hr_result.keys())}")
+            # print(f"   Matched employees count: {len(hr_result.get('matched_employees', []))}")
+            # print(f"   Recommended assignment: {hr_result.get('recommended_assignment')}")
             
             # Handle new Pydantic response format - status is a StatusEnum object
             status = hr_result.get("status")
             status_check = status and (str(status) == "StatusEnum.SUCCESS" or status.value == "success")
-            print(f"🔍 WORKFLOW DEBUG - Status check: {status_check}")
+            # print(f"🔍 WORKFLOW DEBUG - Status check: {status_check}")
             
             if status_check:
-                print("✅ WORKFLOW DEBUG - Status check passed, processing employees...")
+                # print("✅ WORKFLOW DEBUG - Status check passed, processing employees...")
                 # Extract information from new structured response
                 matched_employees = hr_result.get("matched_employees", [])
                 recommended_assignment = hr_result.get("recommended_assignment")
                 
-                print(f"   Matched employees: {len(matched_employees)}")
-                print(f"   Recommended assignment: {recommended_assignment}")
+                # print(f"   Matched employees: {len(matched_employees)}")
+                # print(f"   Recommended assignment: {recommended_assignment}")
                 
                 if matched_employees and recommended_assignment:
-                    print("✅ WORKFLOW DEBUG - Found employees and assignment, processing...")
+                    # print("✅ WORKFLOW DEBUG - Found employees and assignment, processing...")
                     # Get the recommended employee data
                     recommended_employee = next(
                         (emp for emp in matched_employees if emp["employee_id"] == recommended_assignment), 
                         matched_employees[0] if matched_employees else None
                     )
                     
-                    print(f"   Recommended employee: {recommended_employee.get('name') if recommended_employee else 'None'}")
+                    # print(f"   Recommended employee: {recommended_employee.get('name') if recommended_employee else 'None'}")
                     
                     if recommended_employee:
-                        print("✅ WORKFLOW DEBUG - Creating employee data and setting assignment...")
+                        # print("✅ WORKFLOW DEBUG - Creating employee data and setting assignment...")
                         # Add this debug block before creating legacy_employee_data (around line 166)
-                        print("📋📋📋📋📋📋📋🔍 DEBUG: Checking employee data keys...")
-                        print(f"📋📋📋📋📋📋📋 Recommended Employee Raw Data: {recommended_employee}")
-                        print(f"📋 📋📋📋📋📋Available Keys: {list(recommended_employee.keys())}")
-                        print("📋📋📋📋📋📋🔍 Key-Value pairs:")
-                        for key, value in recommended_employee.items():
-                            print(f"   → {key}: {value}")
-                        print("=" * 50)
+                        # print("📋📋📋📋📋📋📋🔍 DEBUG: Checking employee data keys...")
+                        # print(f"📋📋📋📋📋📋📋 Recommended Employee Raw Data: {recommended_employee}")
+                        # print(f"📋 📋📋📋📋📋Available Keys: {list(recommended_employee.keys())}")
+                        # print("📋📋📋📋📋📋🔍 Key-Value pairs:")
+                        # for key, value in recommended_employee.items():
+                            # print(f"   → {key}: {value}")
+                        # print("=" * 50)
                         # Convert to legacy format for compatibility
                         legacy_employee_data = {
                             "id": recommended_employee["employee_id"],
@@ -210,7 +218,7 @@ class MultiAgentWorkflow:
                         state["results"]["hr_action"] = "assign"
                         state["results"]["employee_data"] = legacy_employee_data
                         state["results"]["hr_response"] = hr_result  # Store full response for future use
-                        print("✅ WORKFLOW DEBUG - Assignment data set successfully!")
+                        # print("✅ WORKFLOW DEBUG - Assignment data set successfully!")
                     else:
                         print("❌ WORKFLOW DEBUG - No recommended employee found")
                         state["results"]["hr_agent"] = "No suitable employee found"
@@ -254,15 +262,15 @@ class MultiAgentWorkflow:
         hr_action = state["results"].get("hr_action", "no_assignment")
         employee_data = state["results"].get("employee_data", None)
         
-        print(f"🔍 VOCAL DEBUG - Received state:")
-        print(f"   HR Action: {hr_action}")
-        print(f"   Employee Data: {'Yes' if employee_data else 'No'}")
-        print(f"   Results keys: {list(state['results'].keys()) if 'results' in state else 'No results'}")
-        if employee_data:
-            print(f"   Employee Data Details: {employee_data}")
-            print(f"   Employee Name: {employee_data.get('full_name', 'Unknown')}")
-        else:
-            print(f"   Employee Data is None or empty")
+        # print(f"🔍 VOCAL DEBUG - Received state:")
+        # print(f"   HR Action: {hr_action}")
+        # print(f"   Employee Data: {'Yes' if employee_data else 'No'}")
+        # print(f"   Results keys: {list(state['results'].keys()) if 'results' in state else 'No results'}")
+        # if employee_data:
+        #     print(f"   Employee Data Details: {employee_data}")
+        #     print(f"   Employee Name: {employee_data.get('full_name', 'Unknown')}")
+        # else:
+        #     print(f"   Employee Data is None or empty")
         
         if hr_action == "assign" and employee_data:
             # Prepare ticket data from query and state
@@ -276,6 +284,7 @@ class MultiAgentWorkflow:
             
             # Run Vocal Assistant
             if "vocal_assistant" in self.agents:
+                print("     🎯 Maestro: Activating Vocal Assistant for final delivery.../n")
                 vocal_result = self.agents["vocal_assistant"].run({
                     "action": "initiate_call",
                     "ticket_data": ticket_data,
@@ -297,6 +306,7 @@ class MultiAgentWorkflow:
     @observe()
     def _maestro_final_step(self, state: WorkflowState) -> WorkflowState:
         """Final Maestro step - format employee referral response or voice call result."""
+        print("     🎯 Maestro: Multi-agent collaboration completed - delivering results...\n")
         state = state.copy()
         state["current_step"] = "maestro_final"
         
@@ -305,10 +315,17 @@ class MultiAgentWorkflow:
         hr_result = state["results"].get("hr_agent", "")
         vocal_action = state["results"].get("vocal_action", "no_call")
         call_info = state["results"].get("call_info", None)
+
+        print(f"\n🔍 FINAL DEBUG - Received state for final step:"
+              f"\n   Query: {query}"
+              f"\n   HR Result: {hr_result}"
+              )
         
         if vocal_action == "start_call" and call_info:
             # Voice call initiated - provide call information
             final_response = f"""Your ticket has been assigned to {call_info.get('employee_name', 'an expert')} who will contact you shortly.
+
+            {hr_result}
 
 A voice call is being initiated to discuss your issue in detail and provide a personalized solution."""
 
@@ -349,7 +366,7 @@ Please reach out to them directly - they'll be able to provide specialized assis
             return final_state["results"]
         except Exception as e:
             # Fallback: run agents manually in sequence
-            print(f"Running fallback workflow for: {query}")
+            # print(f"Running fallback workflow for: {query}")
             
             # Step 1: Maestro preprocessing
             maestro_preprocess = self.agents["maestro"].run({

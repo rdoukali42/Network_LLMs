@@ -317,7 +317,7 @@ Keep the response SHORT and focused - no bullet points, no detailed steps, just 
                     # Call Maestro directly for solution synthesis only
                     maestro_result = maestro_agent.run({
                         "query": maestro_input,
-                        "stage": "synthesize",
+                        "stage": "final_review",
                         "data_guardian_result": initial_solution  # Use the employee solution as the "data source"
                     })
                 else:
@@ -331,6 +331,7 @@ Keep the response SHORT and focused - no bullet points, no detailed steps, just 
                 elif isinstance(maestro_result, str):
                     final_solution = maestro_result
                 
+                print(f"Maestro final solution: {final_solution[:200]}...")  # Debug output
                 # Use Maestro's final conclusion if available, otherwise fall back to initial solution
                 solution_to_save = final_solution if final_solution and final_solution.strip() else initial_solution
                 

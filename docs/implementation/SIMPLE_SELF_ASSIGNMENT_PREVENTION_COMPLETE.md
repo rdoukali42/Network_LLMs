@@ -59,7 +59,7 @@ try:
     if hasattr(st, 'session_state') and hasattr(st.session_state, 'username'):
         current_user = st.session_state.username
         all_employees = [emp for emp in all_employees if emp.get('username') != current_user]
-        print(f"🚫 Automatically excluded current user '{current_user}' from employee list")
+        # print(f"🚫 Automatically excluded current user '{current_user}' from employee list")
 except (ImportError, AttributeError):
     # Fall back to exclude_username parameter if streamlit not available
     if exclude_username:

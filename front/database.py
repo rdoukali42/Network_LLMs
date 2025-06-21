@@ -85,17 +85,17 @@ class DatabaseManager:
             # Add missing availability columns
             if 'availability_status' not in columns:
                 conn.execute("ALTER TABLE employees_data_table ADD COLUMN availability_status TEXT DEFAULT 'Offline'")
-                print("✅ Added availability_status column")
+                # print("✅ Added availability_status column")
             
             if 'status_until' not in columns:
                 conn.execute("ALTER TABLE employees_data_table ADD COLUMN status_until TIMESTAMP NULL")
-                print("✅ Added status_until column")
+                # print("✅ Added status_until column")
             
             if 'last_seen' not in columns:
                 conn.execute("ALTER TABLE employees_data_table ADD COLUMN last_seen TIMESTAMP")
                 # Update existing records with current timestamp
                 conn.execute("UPDATE employees_data_table SET last_seen = CURRENT_TIMESTAMP WHERE last_seen IS NULL")
-                print("✅ Added last_seen column")
+                # print("✅ Added last_seen column")
             
             # Check if call_notifications table exists
             cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='call_notifications'")
@@ -113,7 +113,7 @@ class DatabaseManager:
                         FOREIGN KEY (target_employee) REFERENCES employees_data_table(username)
                     )
                 """)
-                print("✅ Added call_notifications table")
+                # print("✅ Added call_notifications table")
     
     def create_employee(self, username: str, full_name: str, role_in_company: str, 
                        job_description: str, expertise: str, responsibilities: str) -> Tuple[bool, str]:

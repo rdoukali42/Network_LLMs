@@ -62,7 +62,7 @@ class HRAgent(BaseAgent):
             ])
             
             agent = create_tool_calling_agent(self.llm, self.tools, prompt)
-            return AgentExecutor(agent=agent, tools=self.tools, verbose=True)
+            return AgentExecutor(agent=agent, tools=self.tools, verbose=False)
         except Exception as e:
             print(f"⚠️ Failed to create HR agent executor: {e}")
             return None
@@ -73,21 +73,21 @@ class HRAgent(BaseAgent):
         start_time = time.time()
         
         # DEBUG: Print input data
-        print(f"🔍 HR_AGENT DEBUG - INPUT:")
-        print(f"   Raw input: {input_data}")
-        print(f"   Input keys: {list(input_data.keys())}")
+        # print(f"🔍 HR_AGENT DEBUG - INPUT:")
+        # print(f"   Raw input: {input_data}")
+        # print(f"   Input keys: {list(input_data.keys())}")
         
         try:
             # Validate and parse input data
             ticket_request = self._parse_ticket_request(input_data)
             
             # DEBUG: Print parsed ticket
-            print(f"   Parsed ticket ID: {ticket_request.ticket_id}")
-            print(f"   Parsed title: {ticket_request.title}")
-            print(f"   Parsed priority: {ticket_request.priority}")
-            print(f"   Parsed skills: {ticket_request.skills_required}")
+            # print(f"   Parsed ticket ID: {ticket_request.ticket_id}")
+            # print(f"   Parsed title: {ticket_request.title}")
+            # print(f"   Parsed priority: {ticket_request.priority}")
+            # print(f"   Parsed skills: {ticket_request.skills_required}")
             
-            print(f"🤖 HR Agent using AI-powered matching for ticket: {ticket_request.ticket_id}")
+            # print(f"🤖 HR Agent using AI-powered matching for ticket: {ticket_request.ticket_id}")
             
             # Get available employees
             if not self.availability_tool:
@@ -120,17 +120,17 @@ class HRAgent(BaseAgent):
             )
             
             # DEBUG: Print output details
-            print(f"🎯 HR_AGENT DEBUG - AI OUTPUT:")
-            print(f"   Status: {response.status}")
-            print(f"   Total matches found: {response.total_matches}")
-            print(f"   Processing time: {response.processing_time_ms:.1f}ms")
-            print(f"   Confidence level: {response.confidence_level:.2f}")
-            print(f"   Recommended assignment: {response.recommended_assignment}")
+            # print(f"🎯 HR_AGENT DEBUG - AI OUTPUT:")
+            # print(f"   Status: {response.status}")
+            # print(f"   Total matches found: {response.total_matches}")
+            # print(f"   Processing time: {response.processing_time_ms:.1f}ms")
+            # print(f"   Confidence level: {response.confidence_level:.2f}")
+            # print(f"   Recommended assignment: {response.recommended_assignment}")
             if matches:
                 best_match = matches[0]
-                print(f"   Best match: {best_match.name} (AI Score: {best_match.overall_score:.2f})")
-                print(f"   AI reasoning: {best_match.match_reasoning[:100]}...")
-                print(f"   Best match status: {best_match.availability_status}")
+                # print(f"   Best match: {best_match.name} (AI Score: {best_match.overall_score:.2f})")
+                # print(f"   AI reasoning: {best_match.match_reasoning[:100]}...")
+                # print(f"   Best match status: {best_match.availability_status}")
             else:
                 print(f"   AI found no suitable matches for query")
             
@@ -173,9 +173,9 @@ class HRAgent(BaseAgent):
         candidates = available_employees.get("available", []) + available_employees.get("busy", [])
         
         # DEBUG: Print availability data
-        print(f"🤖 AI MATCHING: Available employees: {len(available_employees.get('available', []))}")
-        print(f"🤖 AI MATCHING: Busy employees: {len(available_employees.get('busy', []))}")
-        print(f"🤖 AI MATCHING: Total candidates: {len(candidates)}")
+        # print(f"🤖 AI MATCHING: Available employees: {len(available_employees.get('available', []))}")
+        # print(f"🤖 AI MATCHING: Busy employees: {len(available_employees.get('busy', []))}")
+        # print(f"🤖 AI MATCHING: Total candidates: {len(candidates)}")
         
         if not candidates:
             print(f"🤖 AI MATCHING: ⚠️ No candidates available for AI analysis")
@@ -265,26 +265,26 @@ CRITICAL RULES:
 - Ensure always include employee_username and that it matches the username field from the employee data"""
         
         try:
-            print(f"🤖 AI MATCHING: Sending request to AI for employee analysis...")
-            print(f"🤖 AI MATCHING: Query - {ticket.title}: {ticket.description}")
+            # print(f"🤖 AI MATCHING: Sending request to AI for employee analysis...")
+            # print(f"🤖 AI MATCHING: Query - {ticket.title}: {ticket.description}")
             
             # Use the LLM for AI matching if available
             if not self.llm:
-                print(f"🤖 AI MATCHING: ❌ No LLM configured, falling back to basic matching")
+                # print(f"🤖 AI MATCHING: ❌ No LLM configured, falling back to basic matching")
                 return self._fallback_basic_matching(ticket, candidates)
             
             ai_response = self.llm.invoke(prompt)
             ai_content = ai_response.content if hasattr(ai_response, 'content') else str(ai_response)
             
-            print(f"🤖 AI MATCHING: Raw AI response length: {len(ai_content)} characters")
-            print(f"🤖 AI MATCHING: AI response preview: {ai_content}")
+            # print(f"🤖 AI MATCHING: Raw AI response length: {len(ai_content)} characters")
+            # print(f"🤖 AI MATCHING: AI response preview: {ai_content}")
             
             # Extract JSON from AI response
             json_str = self._extract_json_from_response(ai_content)
             if json_str:
                 try:
                     ai_matches = json.loads(json_str)
-                    print(f"🤖 AI MATCHING: Successfully parsed {len(ai_matches)} AI matches")
+                    # print(f"🤖 AI MATCHING: Successfully parsed {len(ai_matches)} AI matches")
                 except json.JSONDecodeError as e:
                     print(f"🤖 AI MATCHING: ❌ JSON parsing error: {e}")
                     return self._fallback_basic_matching(ticket, candidates)
@@ -333,13 +333,13 @@ CRITICAL RULES:
                     )
                     
                     matches.append(employee_match)
-                    print(f"🤖 AI MATCHING: ✅ Created match for {employee_match.name} (AI Score: {employee_match.overall_score:.2f})")
+                    # print(f"🤖 AI MATCHING: ✅ Created match for {employee_match.name} (AI Score: {employee_match.overall_score:.2f})")
                     
                 except (ValueError, KeyError, TypeError) as e:
                     print(f"🤖 AI MATCHING: ❌ Error creating match for {match_data}: {e}")
                     continue
             
-            print(f"🤖 AI MATCHING: Successfully created {len(matches)} AI-powered employee matches")
+            # print(f"🤖 AI MATCHING: Successfully created {len(matches)} AI-powered employee matches")
             return matches
             
         except json.JSONDecodeError as e:
@@ -424,7 +424,7 @@ CRITICAL RULES:
         )
         
         # DEBUG: Print detailed scoring
-        print(f"       Skills: {skill_score:.2f}, Avail: {availability_score:.2f}, Workload: {workload_score:.2f}, Dept: {department_score:.2f} -> Overall: {overall_score:.2f}")
+        # print(f"       Skills: {skill_score:.2f}, Avail: {availability_score:.2f}, Workload: {workload_score:.2f}, Dept: {department_score:.2f} -> Overall: {overall_score:.2f}")
         
         # Find matching and missing skills
         matching_skills, missing_skills = self._analyze_skill_gaps(ticket.skills_required, employee_skills)
