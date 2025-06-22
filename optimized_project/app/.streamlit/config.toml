@@ -1,0 +1,40 @@
+# Streamlit configuration for the optimized_project app.
+# Copied from the original project, can be customized as needed.
+
+[server]
+# Using "poll" can be useful in some Docker/networked filesystem environments
+# but "watchdog" or "none" might be better for local dev depending on OS.
+# fileWatcherType = "poll" # Original value
+fileWatcherType = "auto" # Let Streamlit decide or use "watchdog" if available
+runOnSave = true # Often useful for development
+maxUploadSize = 200
+enableCORS = false # Default is true, set explicitly if needed for specific scenarios
+enableXsrfProtection = true # Default is true, good for security
+
+[browser]
+gatherUsageStats = false # Respect user privacy
+
+[theme]
+base = "light"
+# Example:
+# primaryColor="#2e7d32"
+# backgroundColor="#f5f5f5"
+# secondaryBackgroundColor="#e8f5e9"
+# textColor="#263238"
+# font="sans serif"
+
+[runner]
+magicEnabled = true
+# installTracer = false # Deprecated or internal
+fixMatplotlib = true
+
+[logger]
+level = "info" # Changed from "error" to "info" for better debuggability during dev
+
+[client]
+showErrorDetails = true # Useful for debugging UI issues
+
+[global]
+# dataFrameSerialization = "legacy" # or "arrow" (default)
+# fastReruns = true # Default is true
+# checkPythonVersion = true # Default is true

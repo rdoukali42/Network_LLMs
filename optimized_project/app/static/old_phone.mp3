@@ -1,0 +1,4 @@
+# This is a placeholder for the old_phone.mp3 audio file.
+# The actual audio binary data should be placed here if the ringtone feature is desired.
+# The application code in availability_ui.py attempts to load and play this.
+# If this file is empty or not a valid mp3, the ringtone will not play.

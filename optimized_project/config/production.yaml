@@ -1,0 +1,53 @@
+# Basic production configuration for the optimized project
+# API keys MUST be managed via environment variables in production.
+
+api_keys:
+  gemini: "" # MUST be set via GEMINI_API_KEY environment variable
+  # google_cloud_tts: "" # MUST be set via GOOGLE_CLOUD_TTS_API_KEY
+  # google_cloud_stt: "" # MUST be set via GOOGLE_CLOUD_STT_API_KEY
+
+models:
+  default_llm:
+    temperature: 0.5 # Potentially lower temp for more factual responses
+    max_output_tokens: 1024
+
+  maestro_agent_model:
+    temperature: 0.5
+  data_guardian_agent_model:
+    temperature: 0.4
+  hr_agent_model:
+    temperature: 0.5
+  vocal_assistant_agent_model:
+    temperature: 0.6
+  voice_service_llm_model:
+    temperature: 0.7
+
+vector_store:
+  type: "FAISS" # Consider more robust/scalable options for production if needed
+  persist_directory: "data/vector_store_db_prod" # Separate DB for prod
+  embedding_model_name: "all-MiniLM-L6-v2"
+
+voice_service:
+  tts_provider: "google_cloud"
+  stt_provider: "google_cloud"
+  google_cloud_tts_config:
+    language_code: "en-US"
+    name: "en-US-Wavenet-D"
+    ssml_gender: "FEMALE"
+    audio_encoding: "MP3"
+    sample_rate_hertz: 24000
+  google_cloud_stt_config:
+    language_code: "en-US"
+    encoding: "WEBM_OPUS"
+    sample_rate_hertz: 48000
+
+logging:
+  level: "WARNING" # Higher logging level for production
+
+agents:
+  hr_agent:
+    availability_tool_config: {}
+  data_guardian:
+    search_k_results: 4
+
+workflow: {}

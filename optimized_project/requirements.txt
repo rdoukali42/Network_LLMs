@@ -1,0 +1,60 @@
+# Core Streamlit for Frontend
+streamlit>=1.28.0
+
+# Core LLM and AI Libraries (Langchain stack)
+langchain>=0.1.0 # Keeping version specifiers as in original
+langgraph>=0.1.0
+langfuse>=2.0.0 # For observability, assuming it's kept
+langchain-google-genai>=1.0.0
+
+# Potentially other LLM SDKs if the system is designed to be flexible.
+# If only Google Gemini is used, these can be removed.
+openai>=1.0.0
+anthropic>=0.15.0
+tiktoken>=0.5.0 # Often a dependency for OpenAI
+
+# Vector Store and Embeddings
+# chromadb is used by the original VectorStoreManager, langchain_chroma is its Langchain integration
+langchain_chroma>=0.1.0 # Assuming this is the intended Chroma package for Langchain
+chromadb>=0.4.0
+# faiss-cpu was in original, but ChromaDB is the one implemented in VectorStoreManager.
+# If FAISS is not directly used, it can be removed. Assuming Chroma is primary.
+# sentence-transformers for embeddings, GoogleGenerativeAIEmbeddings is used now.
+# If other embedding models were planned, keep sentence-transformers. For now, let's assume it might be used.
+sentence-transformers>=2.2.0
+
+
+# Data Processing & Pydantic
+# pandas>=2.0.0 # Keep if any underlying Langchain/tool uses it.
+# numpy>=1.24.0 # Keep if any underlying Langchain/tool uses it.
+python-dotenv>=1.0.0 # For .env file loading
+pydantic>=2.0.0 # Used by HRAgent models and Langchain
+
+# Configuration
+pyyaml>=6.0 # For YAML config files
+
+# Audio processing for VoiceService (dependencies of speech_recognition and gTTS)
+# speech_recognition library itself
+speechrecognition>=3.8.1
+# gTTS for fallback TTS
+gTTS>=2.3.0
+# For audio playback in Streamlit (if needed by VoiceService directly, or by app layer)
+# pygame was in front/vocale.py (unused file). If not used by new VoiceService, remove.
+# For audio_recorder_streamlit (used in call_ui.py)
+audio-recorder-streamlit>=0.0.13
+# requests for Google Cloud REST APIs in VoiceService
+requests>=2.20.0
+
+# Other direct dependencies from original files (e.g., hashlib is standard)
+# Ensure all necessary Langchain sub-packages are covered by the main langchain install
+# e.g., langchain-community, langchain-core if they were separate. The single langchain>=0.1.0 should handle most.
+
+# Notes:
+# - Removed: fastapi, uvicorn, jupyter, ipykernel, black, flake8, pre-commit, pytest*, loguru.
+# - Review if 'openai', 'anthropic', 'tiktoken', 'sentence-transformers', 'pandas', 'numpy', 'faiss-cpu'
+#   are strictly necessary if only Google Gemini and ChromaDB are used in the final minimal setup.
+#   For now, retaining them cautiously.
+# - `faiss-cpu` was removed as `VectorStoreManager` uses `Chroma`. If FAISS is a direct alternative, add it back.
+# - `pygame` was removed as it was only in `vocale.py`.
+# - `audio-recorder-streamlit` is added as it's used in `call_ui.py`.
+# - `requests` is added for `VoiceService`'s REST API calls.

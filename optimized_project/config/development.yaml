@@ -1,0 +1,67 @@
+# Basic development configuration for the optimized project
+# API keys should primarily be managed via .env file or environment variables.
+# This file can provide defaults or model/service specific settings.
+
+api_keys:
+  gemini: "" # Placeholder: actual key should be in .env as GEMINI_API_KEY
+  # Add other service keys if needed, e.g.:
+  # google_cloud_tts: ""
+  # google_cloud_stt: ""
+
+models:
+  default_llm: # Generic LLM settings, can be Gemini or other
+    temperature: 0.7
+    max_output_tokens: 1024 # Renamed from max_tokens for clarity
+
+  # Specific model configurations for different agents or tasks
+  maestro_agent_model:
+    # Inherits from default_llm or specify different settings
+    temperature: 0.6
+  data_guardian_agent_model:
+    temperature: 0.5
+  hr_agent_model:
+    temperature: 0.6
+  vocal_assistant_agent_model: # For agent in core/agents/
+    temperature: 0.7
+  voice_service_llm_model: # For LLM used in core/services/voice_service.py
+    temperature: 0.8
+
+
+vector_store:
+  type: "FAISS" # Example, can be Chroma, etc.
+  # Path relative to optimized_project root, will be joined with project_root in vector_manager
+  persist_directory: "data/vector_store_db"
+  embedding_model_name: "all-MiniLM-L6-v2" # Example sentence transformer model
+
+# Settings for core/services/voice_service.py
+voice_service:
+  tts_provider: "google_cloud" # or "gtts_fallback"
+  stt_provider: "google_cloud" # or "speech_recognition_fallback"
+  google_cloud_tts_config:
+    language_code: "en-US"
+    name: "en-US-Wavenet-D" # Example voice
+    ssml_gender: "FEMALE"
+    audio_encoding: "MP3"
+    sample_rate_hertz: 24000
+  google_cloud_stt_config:
+    language_code: "en-US"
+    encoding: "WEBM_OPUS" # This often depends on how audio is captured by frontend
+    sample_rate_hertz: 48000 # Ensure this matches frontend recording settings
+
+logging:
+  level: "INFO"
+
+# Agent specific configurations
+agents:
+  hr_agent:
+    availability_tool_config:
+      # any specific settings for availability tool
+      pass
+  data_guardian:
+    # any specific settings
+    search_k_results: 3
+
+# MultiAgentWorkflow settings
+workflow:
+  # any specific settings for the graph execution
+  pass
