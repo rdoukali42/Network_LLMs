@@ -1222,5 +1222,23 @@
     "assignment_date": "2025-06-23T17:06:03.726312",
     "employee_solution": null,
     "completion_date": null
+  },
+  {
+    "id": "76e73a24",
+    "user": "patrick",
+    "category": "Technical Issue",
+    "priority": "Medium",
+    "subject": "Question-0166",
+    "description": "Need help with product roadmap planning and feature prioritization for mobile app",
+    "status": "Solved",
+    "created_at": "2025-06-23T18:53:18.235525",
+    "updated_at": "2025-06-23T18:58:46.082007",
+    "response": "Your ticket has been assigned to Reda Tazi (Project Manager). A voice call notification has been sent to Reda Tazi.",
+    "response_at": "2025-06-23T18:53:29.655246",
+    "assigned_to": "reda",
+    "assignment_status": "completed",
+    "assignment_date": "2025-06-23T18:53:29.649979",
+    "employee_solution": "Subject: Re: Patrick's Product Roadmap Ticket\n\nDear Reda,\n\nThis email summarizes the resolution of your request regarding Patrick's support ticket (Product Roadmap Planning and Feature Prioritization for a mobile app).\n\nThe ticket, initially marked as medium priority, was initially routed to you for input due to your experience in product delivery.  Due to time constraints, you requested redirection of the ticket.  Several attempts were made to clarify your requests for redirection, including spelling corrections and the intended recipient's name.\n\nUltimately, the ticket was redirected to Sarah. The ticket is now closed. [Source: Conversation Summary]\n\nPlease let us know if you have any further questions or require additional assistance.\n\nSincerely,\n\nThe Support Team",
+    "completion_date": "2025-06-23T18:58:46.081990"
   }
 ]

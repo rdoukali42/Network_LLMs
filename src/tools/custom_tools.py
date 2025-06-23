@@ -18,20 +18,3 @@ class DocumentAnalysisTool(BaseTool):
     
     async def _arun(self, document: str) -> str:
         return self._run(document)
-
-
-class CalculatorTool(BaseTool):
-    name: str = "calculator"
-    description: str = "Perform mathematical calculations"
-    
-    @observe()
-    def _run(self, expression: str) -> str:
-        try:
-            # Basic calculator - in production, use a more secure evaluation
-            result = eval(expression)
-            return str(result)
-        except Exception as e:
-            return f"Error in calculation: {str(e)}"
-    
-    async def _arun(self, expression: str) -> str:
-        return self._run(expression)

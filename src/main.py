@@ -10,12 +10,11 @@ from langfuse import observe
 
 from config.config_loader import config_loader
 from agents import MaestroAgent, DataGuardianAgent, HRAgent
-from tools.custom_tools import DocumentAnalysisTool, CalculatorTool
+from tools.custom_tools import DocumentAnalysisTool
 from tools.availability_tool import AvailabilityTool
 from tools.employee_search_tool import EmployeeSearchTool
 from vectorstore.vector_manager import VectorStoreManager
 from graphs.workflow import MultiAgentWorkflow
-from evaluation.llm_evaluator import LLMEvaluator
 from utils.helpers import load_sample_data, save_experiment_results
 
 # Load environment variables
@@ -53,9 +52,6 @@ class AISystem:
             # Initialize workflow with agents
             self.workflow = MultiAgentWorkflow(self.agents)
             
-            # Initialize evaluator
-            self.evaluator = LLMEvaluator(self.config)
-            
             print("✅ All components initialized successfully")
         except Exception as e:
             print(f"⚠️  Some components failed to initialize: {e}")
@@ -64,16 +60,13 @@ class AISystem:
     def _initialize_tools(self) -> List:
         """Initialize all available tools."""
         return [
-            DocumentAnalysisTool(),
-            CalculatorTool()
+            DocumentAnalysisTool()
         ]
     
     def _initialize_agents(self) -> Dict[str, Any]:
         """Initialize all agents with their tools."""
-        # Tools for Maestro (general processing and calculations)
-        maestro_tools = [
-            CalculatorTool()
-        ]
+        # Tools for Maestro (general processing)
+        maestro_tools = []
         
         # Tools for Data Guardian (document analysis)
         data_guardian_tools = [

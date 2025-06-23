@@ -43,21 +43,18 @@ Access at: http://localhost:8501
 ```
 ├── src/                    # Core AI system
 │   ├── agents/            # Multi-agent implementations
-│   ├── tools/             # Custom tools (Calculator, DocumentAnalysis)
+│   ├── tools/             # Custom tools (Employee Search, Availability)
 │   ├── chains/            # LangChain implementations
 │   ├── graphs/            # LangGraph workflows
-│   └── evaluation/        # LLM evaluation system
+│   ├── models/            # Pydantic data models
+│   ├── utils/             # Utility functions
+│   └── vectorstore/       # Document vector storage
 ├── front/                 # Streamlit web interface
-├── tests/                 # Comprehensive test suite
-│   ├── unit/             # Unit tests
-│   ├── integration/      # Integration tests
-│   ├── system/           # System-level tests
-│   └── evaluation/       # Evaluation tests
-├── docs/                  # Documentation
-│   ├── system/           # System documentation
-│   └── project/          # Project history & guides
-├── examples/             # Demo applications
-├── debug/                # Debug utilities
+│   └── tickets/          # Ticket management system
+├── data/                  # Data storage
+│   ├── databases/        # Employee and ticket databases
+│   ├── chroma_db/        # Vector database
+│   └── raw/              # Raw documents
 └── configs/              # Configuration files
 ```
 
@@ -66,18 +63,22 @@ Access at: http://localhost:8501
 ### **Core Agents**
 - **MaestroAgent**: Query preprocessing and response synthesis
 - **DataGuardianAgent**: Local document search and verification
+- **HRAgent**: Employee assignment and management
+- **VocalAssistant**: Voice call handling and redirect detection
 
 ### **Available Tools**
-- **CalculatorTool**: Mathematical calculations
+- **EmployeeSearchTool**: Find and match employees by criteria
+- **AvailabilityTool**: Check employee availability status
 - **DocumentAnalysisTool**: Document processing and insights
 
 ### **Key Features**
 - ✅ **Multi-agent workflows** with LangGraph
-- ✅ **Real-time chat interface** with Streamlit
-- ✅ **Tool integration** for enhanced capabilities
-- ✅ **LLM evaluation system** with Gemini Flash 1.5
+- ✅ **Employee assignment system** with redirect capabilities
+- ✅ **Voice call interface** with conversation analysis
+- ✅ **Ticket management system** with real-time processing
+- ✅ **Document retrieval** with vector search
+- ✅ **Streamlit web interface** with authentication
 - ✅ **Modular architecture** for easy extension
-- ✅ **Comprehensive testing** suite
 
 ## 📖 Documentation
 

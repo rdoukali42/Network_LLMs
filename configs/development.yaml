@@ -24,10 +24,6 @@ agents:
   max_iterations: 10
   early_stopping_method: "generate"
 
-evaluation:
-  judge_model: "gemini-1.5-flash"
-  metrics: ["relevance", "accuracy", "completeness"]
-
 langfuse:
   enabled: true
   session_id: "dev-session"
