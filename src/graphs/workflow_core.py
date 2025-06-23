@@ -1,0 +1,259 @@
+"""
+Core workflow implementation with LangGraph orchestration.
+"""
+import os
+import sys
+import traceback
+from typing import Dict, Any
+from langgraph.graph import StateGraph, END
+from langfuse import observe
+
+# Add path to access front modules
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
+
+from .workflow_state import WorkflowState
+from .agent_steps import AgentSteps
+from .call_handler import CallHandler
+from .redirect_handler import RedirectHandler
+
+
+class MultiAgentWorkflow:
+    """Multi-agent workflow using LangGraph for Maestro and Data Guardian."""
+    
+    def __init__(self, agents: Dict[str, Any]):
+        self.agents = agents
+        self.agent_steps = AgentSteps(agents)
+        self.call_handler = CallHandler(agents)
+        self.redirect_handler = RedirectHandler(agents)
+        self.graph = self._build_graph()
+    
+    def _build_graph(self) -> StateGraph:
+        """Build the workflow graph."""
+        workflow = StateGraph(WorkflowState)
+        
+        # Add nodes for each step
+        workflow.add_node("maestro_preprocess", self.agent_steps.maestro_preprocess_step)
+        workflow.add_node("data_guardian", self.agent_steps.data_guardian_step)
+        workflow.add_node("maestro_synthesize", self.agent_steps.maestro_synthesize_step)
+        workflow.add_node("hr_agent", self.agent_steps.hr_agent_step)
+        workflow.add_node("vocal_assistant", self.agent_steps.vocal_assistant_step)
+        workflow.add_node("maestro_final", self.agent_steps.maestro_final_step)
+        
+        # NEW NODES for redirect functionality
+        workflow.add_node("call_completion_handler", self.call_handler.call_completion_handler_step)
+        workflow.add_node("redirect_detector", self.redirect_handler.redirect_detector_step)
+        workflow.add_node("employee_searcher", self.redirect_handler.employee_searcher_step)
+        workflow.add_node("maestro_redirect_selector", self.redirect_handler.maestro_redirect_selector_step)
+        
+        # Define edges: Maestro → Data Guardian → Maestro → [Decision] → End or HR → Vocal → [Redirect Check] → End or Redirect Flow
+        workflow.set_entry_point("maestro_preprocess")
+        workflow.add_edge("maestro_preprocess", "data_guardian")
+        workflow.add_edge("data_guardian", "maestro_synthesize")
+        workflow.add_conditional_edges(
+            "maestro_synthesize",
+            self._route_after_synthesis,
+            {
+                "end": END,
+                "hr_agent": "hr_agent"
+            }
+        )
+        workflow.add_edge("hr_agent", "vocal_assistant")
+        
+        # Route through call completion handler
+        workflow.add_edge("vocal_assistant", "call_completion_handler")
+        
+        # NEW CONDITIONAL EDGE: Check call completion status
+        workflow.add_conditional_edges(
+            "call_completion_handler",
+            self.call_handler.check_call_completion,
+            {
+                "redirect": "redirect_detector",
+                "complete": "maestro_final"
+            }
+        )
+        
+        # REDIRECT FLOW EDGES (triggered after call completion)
+        workflow.add_edge("redirect_detector", "employee_searcher")
+        workflow.add_edge("employee_searcher", "maestro_redirect_selector")
+        workflow.add_edge("maestro_redirect_selector", "vocal_assistant")  # Go directly to vocal_assistant
+        workflow.add_edge("vocal_assistant", "call_completion_handler")  # Added missing edge for redirect flow
+        
+        workflow.add_edge("maestro_final", END)
+        
+        return workflow.compile()
+    
+    def _route_after_synthesis(self, state: WorkflowState) -> str:
+        """Route to HR agent if no sufficient answer found."""
+        synthesis_status = state["results"].get("synthesis_status", "success")
+        if synthesis_status == "outside_scope":
+            print("     🚫 Query outside company scope - ending workflow...\n")
+            return "end"  # End workflow for outside scope queries
+        elif synthesis_status == "route_to_hr":
+            print("     🔄 Routing to HR Agent for further assistance...\n")
+            return "hr_agent"
+        return "end"
+    
+    @observe()
+    def run(self, initial_input: Dict[str, Any]) -> Dict[str, Any]:
+        """Run the complete workflow."""
+        query = initial_input.get("query", "")
+        exclude_username = initial_input.get("exclude_username", None)
+        
+        initial_state: WorkflowState = {
+            "messages": [{"content": query, "type": "user"}],
+            "current_step": "",
+            "results": {},
+            "metadata": initial_input,
+            "query": query,  # Ensure query is preserved
+            "exclude_username": exclude_username  # Pass user exclusion context
+        }
+        
+        # Try to run the graph workflow, fallback to simple execution
+        try:
+            final_state = self.graph.invoke(initial_state)
+            return final_state["results"]
+        except Exception as e:
+            print(f"⚠️ Graph execution failed: {e}")
+            print("🔄 Falling back to manual workflow execution...")
+            
+            # Fallback: run agents manually in sequence
+            print(f"Running fallback workflow for: {query}")
+            
+            # Step 1: Maestro preprocessing
+            maestro_preprocess = self.agents["maestro"].run({
+                "query": query,
+                "stage": "preprocess"
+            })
+            print(f"Maestro preprocess result: {maestro_preprocess}")
+            
+            # Step 2: Data Guardian search
+            data_guardian_result = self.agents["data_guardian"].run({
+                "query": query,
+                "search_queries": maestro_preprocess.get("result", query)
+            })
+            print(f"Data Guardian result: {data_guardian_result}")
+            
+            # Step 3: Maestro synthesis
+            maestro_synthesis = self.agents["maestro"].run({
+                "query": query,
+                "stage": "synthesize", 
+                "data_guardian_result": data_guardian_result.get("result", "")
+            })
+            print(f"Maestro synthesis result: {maestro_synthesis}")
+            
+            # Check if need to route to HR
+            if maestro_synthesis.get("status") == "route_to_hr":
+                # Step 4: HR Agent
+                hr_result = self.agents.get("hr_agent", {}).run({"query": query}) if "hr_agent" in self.agents else {"result": "HR Agent not available"}
+                print(f"HR Agent result: {hr_result}")
+                
+                # Step 5: Final response formatting
+                final_response = f"""I couldn't find a direct answer in our knowledge base for your request, but I can help connect you with the right expert.
+
+{hr_result.get("result", "")}
+
+Please reach out to them directly - they'll be able to provide specialized assistance with your specific issue."""
+                
+                return {
+                    "maestro_preprocess": maestro_preprocess.get("result", ""),
+                    "data_guardian": data_guardian_result.get("result", ""),
+                    "hr_agent": hr_result.get("result", ""),
+                    "synthesis": final_response,
+                    "documents_found": data_guardian_result.get("documents_found", 0)
+                }
+            
+            # Return combined results
+            return {
+                "maestro_preprocess": maestro_preprocess.get("result", ""),
+                "data_guardian": data_guardian_result.get("result", ""),
+                "synthesis": maestro_synthesis.get("result", ""),
+                "documents_found": data_guardian_result.get("documents_found", 0)
+            }
+    
+    @observe()
+    def process_end_call(self, end_call_state: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Process END_CALL directly without going through the broken LangGraph routing.
+        This bypasses the hardcoded entry point and state overwriting issues.
+        """
+        print(f"\n🔄 PROCESSING END_CALL DIRECTLY (bypassing broken graph routing)")
+        print(f"🔄 END_CALL: Input state keys: {list(end_call_state.keys())}")
+        
+        try:
+            # Convert input to proper WorkflowState format
+            state: WorkflowState = {
+                "messages": end_call_state.get("messages", []),
+                "current_step": "call_completion_handler",
+                "results": end_call_state.get("results", {}),
+                "metadata": end_call_state.get("metadata", {}),
+                "query": ""  # Empty query for END_CALL processing
+            }
+            
+            print(f"🔄 END_CALL: Starting call completion handler...")
+            
+            # Step 1: Process call completion
+            state = self.call_handler.call_completion_handler_step(state)
+            call_completed = state["results"].get("call_completed", False)
+            
+            print(f"🔄 END_CALL: Call completed: {call_completed}")
+            
+            if not call_completed:
+                print(f"🔄 END_CALL: Call not completed, finishing workflow")
+                # Call not completed, just finish
+                state = self.agent_steps.maestro_final_step(state)
+                return state["results"]
+            
+            # Step 2: Check for redirect
+            print(f"🔄 END_CALL: Checking for redirect...")
+            redirect_decision = self.call_handler.check_for_redirect(state)
+            
+            if redirect_decision == "redirect":
+                print(f"🔄 END_CALL: REDIRECT DETECTED - Processing redirect workflow")
+                
+                # Step 3a: Process redirect flow
+                state = self.redirect_handler.redirect_detector_step(state)
+                state = self.redirect_handler.employee_searcher_step(state)
+                state = self.redirect_handler.maestro_redirect_selector_step(state)
+                state = self.agent_steps.vocal_assistant_step(state)  # Use regular vocal_assistant
+                
+                # Add missing call completion handler for redirect flow
+                state = self.call_handler.call_completion_handler_step(state)
+                
+            else:
+                print(f"🔄 END_CALL: No redirect detected - completing normally")
+            
+            # Only continue to final processing if call is completed
+            call_completed = state.get("results", {}).get("call_completed", True)
+            if call_completed:
+                print(f"🔄 END_CALL: Call completed - proceeding to final processing")
+                # Step 4: Final processing
+                state = self.agent_steps.maestro_final_step(state)
+            else:
+                print(f"🔄 END_CALL: Call initiated but not completed - returning to frontend for live call")
+                # Return to frontend for the live call interface
+                early_return = {
+                    "results": state["results"],
+                    "status": "call_waiting", 
+                    "call_active": True,
+                    "redirect_call_initiated": True
+                }
+                print(f"🔄 END_CALL: Early return keys: {list(early_return.keys())}")
+                print(f"🔄 END_CALL: Early return status: {early_return.get('status')}")
+                print(f"🔄 END_CALL: Early return call_active: {early_return.get('call_active')}")
+                print(f"🔄 END_CALL: Early return redirect_call_initiated: {early_return.get('redirect_call_initiated')}")
+                return early_return
+            
+            print(f"🔄 END_CALL: Direct processing completed successfully")
+            print(f"🔄 END_CALL: Final result keys: {list(state['results'].keys())}")
+            
+            return state["results"]
+            
+        except Exception as e:
+            print(f"❌ END_CALL: Direct processing failed: {e}")
+            print(f"❌ END_CALL: Traceback: {traceback.format_exc()}")
+            
+            # Return error state
+            return {
+                "error": f"END_CALL processing failed: {str(e)}",
+                "status": "error"
+            }

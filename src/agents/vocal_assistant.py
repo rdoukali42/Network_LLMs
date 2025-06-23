@@ -4,12 +4,9 @@ Vocal Assistant Agent - Handles voice calls with assigned employees
 Extracts voice components from smooth_vocal_gemini_fixed_copy.py and adapts for ticket system
 """
 import os
-import io
-import tempfile
 import requests
 import json
 import base64
-import speech_recognition as sr
 from typing import Dict, Any, List, Tuple, Optional
 
 # Handle base agent import with fallback for standalone execution
@@ -29,13 +26,6 @@ except ImportError:
             return func
         return decorator
 
-# Import TTS functionality
-try:
-    from gtts import gTTS
-    GTTS_AVAILABLE = True
-except ImportError:
-    GTTS_AVAILABLE = False
-
 
 class VocalResponse:
     """Parse structured vocal assistant responses for redirect requests."""
@@ -51,7 +41,6 @@ class VocalResponse:
     def _parse_structured_response(self, conversation_data: Dict):
         """Parse structured response format from vocal assistant."""
         print(f"   🔍 VocalResponse: Starting to parse conversation data...")
-        print(f"   🔍 VocalResponse: Conversation data keys: {list(conversation_data.keys())}")
         
         # Get the response text - adjust field name as needed
         response_text = conversation_data.get("response", "")
@@ -61,8 +50,6 @@ class VocalResponse:
             response_text = conversation_data.get("final_response", "")
         
         print(f"   🔍 VocalResponse: Response text length: {len(response_text) if response_text else 0}")
-        if response_text:
-            print(f"   🔍 VocalResponse: First 200 chars: {response_text[:200]}")
         
         if not response_text:
             print(f"   ⚠️ VocalResponse: No response text found!")
@@ -231,18 +218,8 @@ class CloudTTS:
             return self._fallback_tts(text)
     
     def _fallback_tts(self, text: str) -> bytes:
-        """Fallback to gTTS if Cloud TTS fails."""
-        if not GTTS_AVAILABLE:
-            return b""
-        
-        try:
-            tts = gTTS(text=text, lang='en')
-            fp = io.BytesIO()
-            tts.write_to_fp(fp)
-            fp.seek(0)
-            return fp.read()
-        except:
-            return b""
+        """Simplified fallback TTS - returns empty bytes."""
+        return b""
 
 
 class GeminiChat:
@@ -373,7 +350,6 @@ class VocalAssistantAgent(BaseAgent):
         super().__init__("VocalAssistant", config, tools)
         self.gemini = GeminiChat()
         self.tts = CloudTTS()
-        self.recognizer = sr.Recognizer()
         # API key for Gemini transcription fallback
         self.api_key = "AIzaSyD-tvahGE1_oPquWN20h1lpdBcdZ7fUXlk"
     
@@ -382,29 +358,25 @@ class VocalAssistantAgent(BaseAgent):
         """Process vocal call for assigned ticket."""
         try:
             print(f"\n🎤 VocalAssistant processing voice call...")
-            print(f"   🔍 DEBUG: Input data keys: {list(input_data.keys())}")
             
             # Extract input data
             ticket_data = input_data.get("ticket_data", {})
             employee_data = input_data.get("employee_data", {})
             call_action = input_data.get("action", "initiate_call")
             
-            print(f"   🔍 DEBUG: Call action: {call_action}")
-            print(f"   🔍 DEBUG: Employee: {employee_data.get('full_name', 'Unknown')} ({employee_data.get('username', 'No username')})")
-            print(f"   🔍 DEBUG: Ticket subject: {ticket_data.get('subject', 'No subject')}")
-            print(f"   🔍 DEBUG: Ticket ID: {ticket_data.get('id', 'No ID')}")
+            print(f"   � Call action: {call_action}")
+            print(f"   � Employee: {employee_data.get('full_name', 'Unknown')}")
+            print(f"   🎫 Ticket: {ticket_data.get('subject', 'No subject')}")
             
             if call_action == "end_call":
                 # Handle call completion and conversation analysis
-                print(f"   📞 DEBUG: Processing CALL END...")
+                print(f"   📞 Processing CALL END...")
                 
                 conversation_data = input_data.get("conversation_data", {})
                 conversation_summary = input_data.get("conversation_summary", "")
                 call_duration = input_data.get("call_duration", "unknown")
                 
-                print(f"   📞 DEBUG: Call duration: {call_duration}")
-                print(f"   📞 DEBUG: Conversation data available: {'Yes' if conversation_data else 'No'}")
-                print(f"   📞 DEBUG: Conversation summary length: {len(conversation_summary)}")
+                print(f"   📞 Call duration: {call_duration}")
                 
                 # Prepare the conversation analysis
                 if conversation_summary:
@@ -550,52 +522,12 @@ ORIGINAL_CONVERSATION:
             }
     
     def transcribe_audio(self, audio_bytes) -> str:
-        """Transcribe audio bytes to text using two-tier system: Google STT → Gemini AI recovery."""
-        tmp_file_path = None
+        """Simplified transcribe audio - uses Gemini AI transcription."""
         try:
-            # Save audio bytes to temporary file with .wav extension
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp_file:
-                tmp_file.write(audio_bytes)
-                tmp_file_path = tmp_file.name
-            
-            # Adjust recognizer settings for better accuracy
-            self.recognizer.energy_threshold = 300
-            self.recognizer.dynamic_energy_threshold = True
-            self.recognizer.pause_threshold = 0.8
-            self.recognizer.phrase_threshold = 0.3
-            
-            # Primary transcription using Google STT
-            with sr.AudioFile(tmp_file_path) as source:
-                self.recognizer.adjust_for_ambient_noise(source, duration=0.5)
-                audio = self.recognizer.record(source)
-                text = self.recognizer.recognize_google(audio, language='en-US')
-                
-                # Clean up and return successful transcription
-                os.unlink(tmp_file_path)
-                return text
-            
-        except sr.UnknownValueError:
-            # Google STT failed - try Gemini AI recovery
-            print("🔄 Google STT failed, attempting Gemini AI transcription recovery...")
-            try:
-                transcription = self._transcribe_with_gemini(tmp_file_path if tmp_file_path else audio_bytes)
-                if tmp_file_path and os.path.exists(tmp_file_path):
-                    os.unlink(tmp_file_path)
-                return transcription
-            except Exception as gemini_error:
-                print(f"❌ Gemini transcription also failed: {gemini_error}")
-                if tmp_file_path and os.path.exists(tmp_file_path):
-                    os.unlink(tmp_file_path)
-                return "I'm having trouble understanding the audio. Could you please speak more clearly or try again?"
-                
-        except sr.RequestError as e:
-            if tmp_file_path and os.path.exists(tmp_file_path):
-                os.unlink(tmp_file_path)
-            return f"Speech recognition service error: {e}"
+            return self._transcribe_with_gemini(audio_bytes)
         except Exception as e:
-            if tmp_file_path and os.path.exists(tmp_file_path):
-                os.unlink(tmp_file_path)
-            return f"Error processing audio: {e}"
+            print(f"❌ Audio transcription failed: {e}")
+            return "I'm having trouble understanding the audio. Could you please speak more clearly or try again?"
     
     def _transcribe_with_gemini(self, audio_input) -> str:
         """Use Gemini AI to transcribe audio when Google STT fails."""

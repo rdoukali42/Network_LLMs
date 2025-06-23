@@ -1240,5 +1240,41 @@
     "assignment_date": "2025-06-23T18:53:29.649979",
     "employee_solution": "Subject: Re: Patrick's Product Roadmap Ticket\n\nDear Reda,\n\nThis email summarizes the resolution of your request regarding Patrick's support ticket (Product Roadmap Planning and Feature Prioritization for a mobile app).\n\nThe ticket, initially marked as medium priority, was initially routed to you for input due to your experience in product delivery.  Due to time constraints, you requested redirection of the ticket.  Several attempts were made to clarify your requests for redirection, including spelling corrections and the intended recipient's name.\n\nUltimately, the ticket was redirected to Sarah. The ticket is now closed. [Source: Conversation Summary]\n\nPlease let us know if you have any further questions or require additional assistance.\n\nSincerely,\n\nThe Support Team",
     "completion_date": "2025-06-23T18:58:46.081990"
+  },
+  {
+    "id": "151a4b0b",
+    "user": "patrick",
+    "category": "Technical Issue",
+    "priority": "Medium",
+    "subject": "Training Programs",
+    "description": "i need some answers for some questions regarding the choice of which backend we want to use",
+    "status": "Solved",
+    "created_at": "2025-06-23T19:17:07.519050",
+    "updated_at": "2025-06-23T19:20:04.203406",
+    "response": "Your ticket has been assigned to Yacoub Hossam (Full-Stack Software Developer). A voice call notification has been sent to Yacoub Hossam.",
+    "response_at": "2025-06-23T19:17:18.468198",
+    "assigned_to": "yacoub",
+    "assignment_status": "completed",
+    "assignment_date": "2025-06-23T19:17:18.466929",
+    "employee_solution": "Subject: Re: Backend Technology Choices - Django for Packet Handling\n\nDear Patrick,\n\nThis email addresses your question regarding the use of Django for packet handling in our backend systems.\n\nBased on our internal discussions, it appears your ticket inquired about the feasibility or specifics of using Django for packet processing within our company infrastructure.  The conversation clarified that \"Jungle,\" initially mentioned in your ticket, was a typo and should have read \"Django.\"\n\nWhile the conversation provided context, it did not offer specific details about the nature of your questions regarding Django's application to packet handling. To best assist you, please provide further clarification on the specific aspects of Django you'd like to understand in relation to packet handling. For example, are you interested in:\n\n* **Specific Django libraries or packages relevant to packet processing?**\n* **Integration of Django with existing networking infrastructure?**\n* **Performance considerations of using Django for high-volume packet handling?**\n* **Security implications of using Django in this context?**\n\nProviding more detail will allow us to offer a more precise and helpful response.\n\nSincerely,\n\nThe Support Team",
+    "completion_date": "2025-06-23T19:20:04.203389"
+  },
+  {
+    "id": "040beee5",
+    "user": "yacoub",
+    "category": "Technical Issue",
+    "priority": "Medium",
+    "subject": "Question-0178",
+    "description": "The mobile onboarding experience needs a redesign due to usability concerns. A new user flow and mockups should be developed to reduce friction and increase user conversion.",
+    "status": "Responded",
+    "created_at": "2025-06-23T19:28:54.500963",
+    "updated_at": "2025-06-23T19:29:04.923411",
+    "response": "Your ticket has been assigned to Mounir Belhaj (UX/UI Designer & Front-End Developer). A voice call notification has been sent to Mounir Belhaj.",
+    "response_at": "2025-06-23T19:29:04.923397",
+    "assigned_to": "mounir",
+    "assignment_status": "assigned",
+    "assignment_date": "2025-06-23T19:29:04.917873",
+    "employee_solution": null,
+    "completion_date": null
   }
 ]
