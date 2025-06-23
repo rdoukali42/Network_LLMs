@@ -12,6 +12,7 @@ from config.config_loader import config_loader
 from agents import MaestroAgent, DataGuardianAgent, HRAgent
 from tools.custom_tools import DocumentAnalysisTool, CalculatorTool
 from tools.availability_tool import AvailabilityTool
+from tools.employee_search_tool import EmployeeSearchTool
 from vectorstore.vector_manager import VectorStoreManager
 from graphs.workflow import MultiAgentWorkflow
 from evaluation.llm_evaluator import LLMEvaluator
@@ -82,10 +83,14 @@ class AISystem:
         # Initialize availability tool for HR Agent
         availability_tool = AvailabilityTool()
         
+        # Initialize employee search tool for redirect functionality
+        employee_search_tool = EmployeeSearchTool()
+        
         agents = {
             "maestro": MaestroAgent(config=self.config, tools=maestro_tools),
             "data_guardian": DataGuardianAgent(config=self.config, tools=data_guardian_tools, vector_manager=self.vector_manager),
-            "hr_agent": HRAgent(config=self.config, tools=[], availability_tool=availability_tool)
+            "hr_agent": HRAgent(config=self.config, tools=[], availability_tool=availability_tool),
+            "employee_search_tool": employee_search_tool  # Add search tool as an "agent" for workflow access
         }
         
         # Add VocalAssistant if available

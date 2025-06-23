@@ -1,0 +1,28 @@
+# Environment Variables for AI Project
+
+# LLM API Keys
+OPENAI_API_KEY=your_openai_api_key_here
+ANTHROPIC_API_KEY=your_anthropic_api_key_here
+GOOGLE_API_KEY=AIzaSyD-tvahGE1_oPquWN20h1lpdBcdZ7fUXlk
+
+
+#Tools API Keys
+GOOGLE_SEARCH_API_KEY=AIzaSyDaE81AJEownlEu85Q2x34ErXFttibno1w
+
+# LangFuse Configuration
+LANGFUSE_PUBLIC_KEY=pk-lf-f71a6b0d-b83e-406b-9e87-7b7808f3ab47
+LANGFUSE_SECRET_KEY=sk-lf-ce06348d-f585-4589-aaf8-7683654a140e
+LANGFUSE_HOST=https://cloud.langfuse.com
+# Vector Store Configuration
+CHROMA_PERSIST_DIRECTORY=./data/chroma_db
+FAISS_INDEX_PATH=./data/faiss_index
+
+# Application Settings
+LOG_LEVEL=INFO
+ENVIRONMENT=development
+
+# Experimental Configuration
+DEFAULT_MODEL=gpt-4-turbo-preview
+EMBEDDING_MODEL=text-embedding-3-small
+CHUNK_SIZE=1000
+CHUNK_OVERLAP=200

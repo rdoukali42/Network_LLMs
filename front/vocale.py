@@ -245,6 +245,56 @@ def continuous_listening():
 st.title("🎤 Vocal AI Assistant")
 st.markdown("*Experience natural voice conversations with AI*")
 
+# 🆕 NEW: Call Status Display
+if 'call_data' not in st.session_state:
+    st.session_state.call_data = {}
+
+call_status = "Inactive"
+status_color = "red"
+status_icon = "🔴"
+
+if st.session_state.conversation_active:
+    call_status = "In Progress"
+    status_color = "green"
+    status_icon = "🟢"
+elif st.session_state.call_data.get("call_ended", False):
+    if st.session_state.call_data.get("conversation_complete", False):
+        call_status = "Completed"
+        status_color = "blue"
+        status_icon = "🔵"
+    else:
+        call_status = "Analyzing"
+        status_color = "orange"
+        status_icon = "🟡"
+
+# Call Status Banner
+st.markdown(f"""
+<div style="
+    background-color: {status_color}20;
+    border: 2px solid {status_color};
+    border-radius: 10px;
+    padding: 10px;
+    margin: 10px 0;
+    text-align: center;
+">
+    <h3>{status_icon} Call Status: {call_status}</h3>
+</div>
+""", unsafe_allow_html=True)
+
+# Show redirect options if call is completed and redirect detected
+if st.session_state.call_data.get("call_ended", False):
+    if st.session_state.call_data.get("redirect_requested", False):
+        st.warning("🔄 **Redirect Requested** - Reassigning ticket to appropriate employee...")
+        redirect_info = st.session_state.call_data.get("redirect_info", {})
+        if redirect_info:
+            st.info(f"📋 **Redirect Details**: {redirect_info}")
+    elif st.session_state.call_data.get("conversation_complete", False):
+        st.success("✅ **Call Completed Successfully** - No redirect needed")
+
+# Show reassignment progress
+if st.session_state.call_data.get("reassigning", False):
+    st.info("🔄 **Reassigning ticket...** Please wait while we find the best employee for your issue.")
+
 # Configuration Section
 with st.sidebar:
     st.header("⚙️ Configuration")
@@ -260,6 +310,26 @@ with st.sidebar:
     st.header("📊 Session Info")
     st.metric("Messages", len(st.session_state.messages))
     st.metric("Status", "Active" if st.session_state.conversation_active else "Inactive")
+    
+    # 🆕 NEW: Enhanced call status info
+    if st.session_state.call_data:
+        st.header("📞 Call Details")
+        if st.session_state.call_data.get("call_ended", False):
+            st.metric("Call Duration", st.session_state.call_data.get("call_duration", "Unknown"))
+            st.metric("Conversation Length", f"{len(st.session_state.call_data.get('conversation_summary', ''))} chars")
+            
+            if st.session_state.call_data.get("redirect_requested", False):
+                st.error("🔄 Redirect Requested")
+            else:
+                st.success("✅ Call Complete")
+        elif st.session_state.conversation_active:
+            st.info("🟢 Call In Progress")
+    
+    # Show call history
+    if st.session_state.call_data.get("conversation_history", []):
+        with st.expander("📋 Call History"):
+            for msg in st.session_state.call_data["conversation_history"][-3:]:  # Show last 3 messages
+                st.text(f"{msg['role']}: {msg['content'][:50]}...")  
 
 # Control Panel
 col1, col2, col3, col4 = st.columns(4)
@@ -277,7 +347,40 @@ with col2:
     if st.button("⏹️ End Conversation", disabled=not st.session_state.conversation_active):
         st.session_state.conversation_active = False
         st.session_state.is_speaking = False
-        st.info("Conversation ended.")
+        
+        # 🆕 NEW: Trigger conversation analysis and workflow completion
+        print(f"📞 END CALL: User clicked End Conversation button")
+        
+        # Prepare conversation data for analysis
+        conversation_history = st.session_state.messages
+        conversation_summary = "\n".join([f"{msg['role']}: {msg['content']}" for msg in conversation_history])
+        
+        print(f"📞 END CALL: Conversation history length: {len(conversation_history)} messages")
+        print(f"📞 END CALL: Conversation summary length: {len(conversation_summary)} characters")
+        
+        # Store conversation data for workflow processing
+        if 'call_data' not in st.session_state:
+            st.session_state.call_data = {}
+        
+        st.session_state.call_data.update({
+            "call_ended": True,
+            "conversation_history": conversation_history,
+            "conversation_summary": conversation_summary,
+            "call_end_timestamp": datetime.now().isoformat(),
+            "conversation_complete": True
+        })
+        
+        print(f"📞 END CALL: Call data stored in session state")
+        print(f"📞 END CALL: Ready for redirect analysis...")
+        
+        st.success("✅ Call ended successfully! Analyzing conversation for any redirect requests...")
+        
+        # TODO: Here we would trigger the workflow with end_call action
+        # For now, just show the completion message
+        if conversation_history:
+            st.info(f"📋 Conversation completed with {len(conversation_history)} exchanges")
+        else:
+            st.warning("⚠️ No conversation recorded during this call")
 
 with col3:
     mute_label = "🔇 Unmute" if st.session_state.is_muted else "🔇 Mute Mic"

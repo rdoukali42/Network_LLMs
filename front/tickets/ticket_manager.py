@@ -92,16 +92,38 @@ class TicketManager:
     
     def assign_ticket(self, ticket_id: str, employee_username: str):
         """Assign ticket to an employee."""
+        print(f"🎯 TICKET_MANAGER DEBUG: assign_ticket called with ticket_id='{ticket_id}', username='{employee_username}'")
+        
         tickets = self.load_tickets()
-        for ticket in tickets:
+        print(f"🎯 TICKET_MANAGER DEBUG: Loaded {len(tickets)} tickets from storage")
+        
+        ticket_found = False
+        for i, ticket in enumerate(tickets):
+            print(f"🎯 TICKET_MANAGER DEBUG: Checking ticket {i}: ID='{ticket.get('id', 'NO_ID')}' vs target='{ticket_id}'")
             if ticket["id"] == ticket_id:
+                print(f"🎯 TICKET_MANAGER DEBUG: Found matching ticket at index {i}")
+                print(f"🎯 TICKET_MANAGER DEBUG: Current ticket data: {ticket}")
+                print(f"🎯 TICKET_MANAGER DEBUG: Current assigned_to: '{ticket.get('assigned_to', 'None')}'")
+                
                 ticket["assigned_to"] = employee_username
                 ticket["assignment_status"] = "assigned"
                 ticket["assignment_date"] = datetime.now().isoformat()
                 ticket["status"] = "Assigned"
                 ticket["updated_at"] = datetime.now().isoformat()
+                
+                print(f"🎯 TICKET_MANAGER DEBUG: Updated ticket data: {ticket}")
+                ticket_found = True
                 break
+                
+        if not ticket_found:
+            print(f"❌ TICKET_MANAGER DEBUG: Ticket with ID '{ticket_id}' not found!")
+            print(f"❌ TICKET_MANAGER DEBUG: Available ticket IDs: {[t.get('id', 'NO_ID') for t in tickets]}")
+            return False
+            
+        print(f"🎯 TICKET_MANAGER DEBUG: Saving {len(tickets)} tickets back to storage")
         self.save_tickets(tickets)
+        print(f"✅ TICKET_MANAGER DEBUG: Successfully assigned ticket {ticket_id} to {employee_username}")
+        return True
     
     def update_employee_solution(self, ticket_id: str, solution: str):
         """Update ticket with employee solution."""
