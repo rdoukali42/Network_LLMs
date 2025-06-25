@@ -14,8 +14,9 @@ sys.path.insert(0, str(project_root / "src"))
 sys.path.insert(0, str(front_dir))
 
 from auth import handle_authentication
-from tickets import show_ticket_interface
+from modern_ticket_interface import show_modern_ticket_interface
 from streamlit_config import APP_TITLE, APP_ICON, SESSION_KEYS, check_environment
+from service_integration import ServiceIntegration
 
 def main():
     """Main application function."""
@@ -36,11 +37,15 @@ def main():
     if SESSION_KEYS["authenticated"] not in st.session_state:
         st.session_state[SESSION_KEYS["authenticated"]] = False
     
+    # Initialize service integration
+    if "service_integration" not in st.session_state:
+        st.session_state.service_integration = ServiceIntegration()
+    
     # Handle authentication
     if not st.session_state[SESSION_KEYS["authenticated"]]:
         handle_authentication()
     else:
-        show_ticket_interface()
+        show_modern_ticket_interface()
 
 if __name__ == "__main__":
     main()

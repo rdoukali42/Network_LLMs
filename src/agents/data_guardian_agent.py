@@ -13,12 +13,13 @@ from .base_agent import BaseAgent
 class DataGuardianAgent(BaseAgent):
     """Agent specialized in searching local documents and data verification."""
     
-    def __init__(self, config: Dict[str, Any] = None, tools: List[BaseTool] = None, vector_manager=None):
-        super().__init__("DataGuardianAgent", config, tools)
+    def __init__(self, settings=None, tools: List[BaseTool] = None, vector_manager=None):
+        super().__init__("DataGuardianAgent", settings, tools)
         self.vector_manager = vector_manager
         
         # Create agent executor with tools if available
-        if self.llm and self.tools:
+        llm = self.get_llm()
+        if llm and self.tools:
             self.agent_executor = self._create_agent_executor()
         else:
             self.agent_executor = None
@@ -26,6 +27,10 @@ class DataGuardianAgent(BaseAgent):
     def _create_agent_executor(self):
         """Create an agent executor with tools."""
         try:
+            llm = self.get_llm()
+            if not llm:
+                return None
+                
             # Create a simple prompt for tool-enabled agent
             prompt = ChatPromptTemplate.from_messages([
                 ("system", self.get_system_prompt()),
@@ -34,7 +39,7 @@ class DataGuardianAgent(BaseAgent):
             ])
             
             # Create tool-calling agent
-            agent = create_tool_calling_agent(self.llm, self.tools, prompt)
+            agent = create_tool_calling_agent(llm, self.tools, prompt)
             return AgentExecutor(agent=agent, tools=self.tools, verbose=False)
         except Exception as e:
             print(f"⚠️ Failed to create agent executor: {e}")
@@ -129,7 +134,8 @@ Provide a structured analysis of what information is available locally."""
                     }
                 else:
                     # Fallback to direct LLM call
-                    if not self.llm:
+                    llm = self.get_llm()
+                    if not llm:
                         # Return structured format even without LLM
                         return {
                             "agent": self.name,
@@ -139,7 +145,7 @@ Provide a structured analysis of what information is available locally."""
                             "documents_found": len(search_results)
                         }
                     
-                    response = self.llm.invoke(f"{self.get_system_prompt()}\n\n{analysis_input}")
+                    response = llm.invoke(f"{self.get_system_prompt()}\n\n{analysis_input}")
                     return {
                         "agent": self.name,
                         "status": "success",
@@ -194,7 +200,8 @@ Provide analysis of whether this query aligns with company capabilities."""
                         "documents_found": 0
                     }
                 else:
-                    if not self.llm:
+                    llm = self.get_llm()
+                    if not llm:
                         return {
                             "agent": self.name,
                             "status": "success",
@@ -203,7 +210,7 @@ Provide analysis of whether this query aligns with company capabilities."""
                             "documents_found": 0
                         }
                     
-                    response = self.llm.invoke(f"{self.get_system_prompt()}\n\n{analysis_input}")
+                    response = llm.invoke(f"{self.get_system_prompt()}\n\n{analysis_input}")
                     return {
                         "agent": self.name,
                         "status": "success",
@@ -225,7 +232,9 @@ Provide analysis of whether this query aligns with company capabilities."""
         """Load company scope directly from file (small, always relevant)."""
         try:
             import os
-            scope_file = os.path.join("data", "raw", "company_scope.md")
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            project_root = os.path.dirname(os.path.dirname(current_dir))
+            scope_file = os.path.join(project_root, "data", "raw", "company_scope.md")
             if os.path.exists(scope_file):
                 with open(scope_file, "r", encoding="utf-8") as f:
                     return f.read()

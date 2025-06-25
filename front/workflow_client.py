@@ -1,6 +1,6 @@
 """
 Workflow client for connecting Streamlit app to the AI system.
-Handles communication with the main AI workflow.
+Handles communication with the main AI workflow via the service layer.
 """
 
 import os
@@ -20,69 +20,50 @@ except ImportError:
 sys.path.insert(0, str(project_root / "src"))
 
 class WorkflowClient:
-    """Client for interacting with the AI workflow system."""
+    """
+    Legacy workflow client for backward compatibility.
+    Now delegates to the service layer for centralized backend access.
+    """
     
     def __init__(self):
         """Initialize the workflow client."""
-        self.system = None
-        self._initialize_system()
+        self.service_integration = None
+        self._initialize_service()
     
-    def _initialize_system(self):
-        """Initialize the AI system."""
+    def _initialize_service(self):
+        """Initialize the service integration."""
         try:
-            # Change to project root for proper imports
-            original_cwd = os.getcwd()
-            os.chdir(project_root)
-            
-            # Import with explicit path to avoid conflicts
-            import sys
-            sys.path.insert(0, str(project_root / "src"))
-            
-            from main import AISystem
-            self.system = AISystem()
-            
-            # Restore working directory
-            os.chdir(original_cwd)
-            
+            from service_integration import ServiceIntegration
+            self.service_integration = ServiceIntegration()
         except Exception as e:
-            print(f"Error initializing AI system: {e}")
+            print(f"Error initializing service integration: {e}")
             import traceback
             traceback.print_exc()
-            self.system = None
+            self.service_integration = None
     
-    def process_query(self, query: str) -> dict:
+    def process_query(self, query: str, username: str = None) -> dict:
         """
-        Process a user query through the AI workflow.
+        Process a user query through the AI workflow via service layer.
         
         Args:
             query: The user's question or request
+            username: Username for the request
             
         Returns:
             dict: Response from the AI system
         """
-        if not self.system:
+        if not self.service_integration:
             return {
                 "status": "error",
-                "error": "AI system not initialized. Please check your configuration."
+                "error": "Service integration not initialized. Please check your configuration."
             }
         
         try:
-            # Change to project root for processing
-            original_cwd = os.getcwd()
-            os.chdir(project_root)
-            
-            # Process the query through the workflow
-            result = self.system.process_query(query)
-            
-            # Restore working directory
-            os.chdir(original_cwd)
-            
+            # Use the service layer's workflow processing
+            result = self.service_integration.process_workflow_query(query, username=username)
             return result
             
         except Exception as e:
-            if 'original_cwd' in locals():
-                os.chdir(original_cwd)
-            
             return {
                 "status": "error",
                 "error": f"Error processing query: {str(e)}"
@@ -90,16 +71,18 @@ class WorkflowClient:
     
     def is_ready(self) -> bool:
         """Check if the workflow client is ready to process queries."""
-        return self.system is not None
+        return (self.service_integration is not None and 
+                self.service_integration.is_healthy())
     
-    def process_message(self, message: str) -> dict:
+    def process_message(self, message: str, username: str = None) -> dict:
         """
         Alias for process_query to maintain compatibility with ticket system.
         
         Args:
             message: The user's message or request
+            username: Username for the request
             
         Returns:
             dict: Response from the AI system
         """
-        return self.process_query(message)
+        return self.process_query(message, username=username)

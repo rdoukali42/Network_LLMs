@@ -4,30 +4,36 @@ Base agent class for all agents in the system.
 
 import os
 from abc import ABC, abstractmethod
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from langchain.agents import AgentExecutor, create_tool_calling_agent
 from langchain.tools import BaseTool
 from langchain.prompts import ChatPromptTemplate
-from langchain_google_genai import ChatGoogleGenerativeAI
 from langfuse import observe
+from integrations.llm_client import LLMClient
 
 
 class BaseAgent(ABC):
     """Abstract base class for all agents in the system."""
     
-    def __init__(self, name: str, config: Dict[str, Any] = None, tools: List[BaseTool] = None):
+    def __init__(self, name: str, settings=None, tools: List[BaseTool] = None, llm_client: Optional[LLMClient] = None):
         self.name = name
         self.tools = tools or []
+        self.settings = settings
         
-        # Initialize LLM if config provided
-        if config:
-            self.llm = ChatGoogleGenerativeAI(
-                model=config['llm']['model'],
-                temperature=config['llm']['temperature'],
-                google_api_key=os.getenv('GOOGLE_API_KEY')
-            )
+        # Use centralized LLM client or create a new one
+        if llm_client:
+            self.llm_client = llm_client
+        elif settings:
+            self.llm_client = LLMClient(settings)
         else:
-            self.llm = None
+            # Fallback to None - agents should handle this case
+            self.llm_client = None
+    
+    def get_llm(self):
+        """Get LLM instance from the centralized client."""
+        if self.llm_client:
+            return self.llm_client.get_llm("gemini-1.5-flash")  # Updated to current model
+        return None
     
     @abstractmethod
     @observe()

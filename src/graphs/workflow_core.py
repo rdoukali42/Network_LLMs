@@ -15,6 +15,7 @@ from .workflow_state import WorkflowState
 from .agent_steps import AgentSteps
 from .call_handler import CallHandler
 from .redirect_handler import RedirectHandler
+from utils.exceptions import WorkflowError
 
 
 class MultiAgentWorkflow:
@@ -108,67 +109,15 @@ class MultiAgentWorkflow:
             "exclude_username": exclude_username  # Pass user exclusion context
         }
         
-        # Try to run the graph workflow, fallback to simple execution
+        # Run the graph workflow - NO FALLBACK, must work or fail
         try:
             final_state = self.graph.invoke(initial_state)
             return final_state["results"]
         except Exception as e:
-            print(f"⚠️ Graph execution failed: {e}")
-            print("🔄 Falling back to manual workflow execution...")
-            
-            # Fallback: run agents manually in sequence
-            print(f"Running fallback workflow for: {query}")
-            
-            # Step 1: Maestro preprocessing
-            maestro_preprocess = self.agents["maestro"].run({
-                "query": query,
-                "stage": "preprocess"
-            })
-            print(f"Maestro preprocess result: {maestro_preprocess}")
-            
-            # Step 2: Data Guardian search
-            data_guardian_result = self.agents["data_guardian"].run({
-                "query": query,
-                "search_queries": maestro_preprocess.get("result", query)
-            })
-            print(f"Data Guardian result: {data_guardian_result}")
-            
-            # Step 3: Maestro synthesis
-            maestro_synthesis = self.agents["maestro"].run({
-                "query": query,
-                "stage": "synthesize", 
-                "data_guardian_result": data_guardian_result.get("result", "")
-            })
-            print(f"Maestro synthesis result: {maestro_synthesis}")
-            
-            # Check if need to route to HR
-            if maestro_synthesis.get("status") == "route_to_hr":
-                # Step 4: HR Agent
-                hr_result = self.agents.get("hr_agent", {}).run({"query": query}) if "hr_agent" in self.agents else {"result": "HR Agent not available"}
-                print(f"HR Agent result: {hr_result}")
-                
-                # Step 5: Final response formatting
-                final_response = f"""I couldn't find a direct answer in our knowledge base for your request, but I can help connect you with the right expert.
-
-{hr_result.get("result", "")}
-
-Please reach out to them directly - they'll be able to provide specialized assistance with your specific issue."""
-                
-                return {
-                    "maestro_preprocess": maestro_preprocess.get("result", ""),
-                    "data_guardian": data_guardian_result.get("result", ""),
-                    "hr_agent": hr_result.get("result", ""),
-                    "synthesis": final_response,
-                    "documents_found": data_guardian_result.get("documents_found", 0)
-                }
-            
-            # Return combined results
-            return {
-                "maestro_preprocess": maestro_preprocess.get("result", ""),
-                "data_guardian": data_guardian_result.get("result", ""),
-                "synthesis": maestro_synthesis.get("result", ""),
-                "documents_found": data_guardian_result.get("documents_found", 0)
-            }
+            # No fallback - throw the error to caller
+            error_msg = f"Workflow execution failed: {str(e)}"
+            print(f"❌ {error_msg}")
+            raise WorkflowError(error_msg) from e
     
     @observe()
     def process_end_call(self, end_call_state: Dict[str, Any]) -> Dict[str, Any]:

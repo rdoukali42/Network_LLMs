@@ -241,57 +241,22 @@ def generate_solution_from_call():
             
             print("🔄 END_CALL: Checking workflow client availability...")
             # Step 1: Send END_CALL through the proper backend workflow
-            if hasattr(st.session_state, 'workflow_client') and st.session_state.workflow_client and st.session_state.workflow_client.system:
-                print("🔄 END_CALL: Workflow client available - using existing system")
+            if (hasattr(st.session_state, 'workflow_client') and 
+                st.session_state.workflow_client and 
+                st.session_state.workflow_client.service_integration):
+                print("🔄 END_CALL: Workflow client available - using existing service integration")
                 
                 # 🔧 CRITICAL FIX: Capture workflow reference BEFORE entering thread
                 # Session state is not accessible from background threads
                 workflow_client = st.session_state.workflow_client
-                workflow_system = workflow_client.system
-                print("🔄 END_CALL: Workflow references captured for thread execution")
-                
-                # 🔧 CRITICAL FIX: Create workflow input that starts at call completion handler
-                # This bypasses the default vocal_assistant -> maestro -> data_guardian path
-                # and goes directly to analyzing the conversation for redirect requests
-                
-                # Create workflow state for END_CALL processing
-                workflow_input = {
-                    "messages": [],
-                    "current_step": "call_completion_handler",  # Start at call completion, NOT vocal_assistant
-                    "results": {
-                        "hr_agent": {
-                            "action": "assign",
-                            "employee": employee_data.get('username', 'unknown'),
-                            "employee_data": employee_data
-                        },
-                        "vocal_assistant": {
-                            "action": "end_call",  # This indicates call completion
-                            "status": "call_completed",
-                            "conversation_summary": conversation_summary,
-                            "conversation_data": {
-                                "conversation_summary": conversation_summary,
-                                "call_duration": "completed",
-                                "full_conversation": conversation_summary  # Include full conversation for analysis
-                            },
-                            "result": f"Voice call completed with {employee_data.get('full_name', 'Unknown')}",
-                            "end_call_triggered": True  # Flag to indicate this is END_CALL processing
-                        }
-                    },
-                    "metadata": {
-                        "request_type": "voice",
-                        "event_type": "end_call",  # Clear indication this is end call processing
-                        "ticket_id": ticket_data.get('id'),
-                        "employee_id": employee_data.get('username')
-                    }
-                    # NOTE: Deliberately NO "query" field - this prevents routing through vocal_assistant
-                }
+                service_integration = workflow_client.service_integration
+                print("🔄 END_CALL: Service integration references captured for thread execution")
                 
                 print(f"🔄 END_CALL: Sending conversation through backend workflow...")
-                print(f"🔄 END_CALL: ✨ USING NEW CALL COMPLETION HANDLER PATH ✨")
-                print(f"🔄 END_CALL: Starting at: call_completion_handler (NOT vocal_assistant)")
-                print(f"🔄 END_CALL: Event type: end_call (bypasses default query routing)")
+                print(f"🔄 END_CALL: ✨ USING SIMPLIFIED SERVICE INTEGRATION APPROACH ✨")
+                print(f"🔄 END_CALL: Processing conversation for solution generation")
                 print(f"🔄 END_CALL: Conversation length: {len(conversation_summary)}")
-                print(f"🔄 END_CALL: Action: end_call")
+                print(f"🔄 END_CALL: Employee: {employee_data.get('full_name', 'Unknown')}")
                 
                 # Add thread-safe timeout handling instead of signal
                 import concurrent.futures
@@ -301,80 +266,86 @@ def generate_solution_from_call():
                     print("🔄 END_CALL: Starting workflow execution...")
                     start_time = time.time()
                     
-                    # Use the captured workflow system (no session state access needed)
-                    print(f"🔄 END_CALL: Using captured workflow system: {type(workflow_system)}")
+                    # Use the captured service integration (no session state access needed)
+                    print(f"🔄 END_CALL: Using captured service integration: {type(service_integration)}")
                     
-                    # 🆕 USE NEW DIRECT END_CALL PROCESSING METHOD
-                    # This bypasses the broken LangGraph routing completely
-                    print(f"🔄 END_CALL: ✨ USING DIRECT END_CALL PROCESSING METHOD ✨")
-                    print(f"🔄 END_CALL: Bypassing broken graph.invoke() routing")
+                    # Create a solution-focused query to ensure proper workflow routing
+                    conversation_query = f"""CALL COMPLETION - GENERATE SOLUTION
+
+Call completed with employee: {employee_data.get('full_name', 'Unknown Employee')}
+Employee role: {employee_data.get('role_in_company', 'Technical Expert')}
+Ticket ID: {ticket_data.get('id')}
+Ticket subject: {ticket_data.get('subject', 'Support Request')}
+
+CONVERSATION TRANSCRIPT:
+{conversation_summary}
+
+TASK: Analyze this completed voice call conversation and generate a brief, professional email-style solution for the ticket using this format:
+
+Subject: Re: {ticket_data.get('subject', 'Your Request')}
+
+Hi {ticket_data.get('user', 'there')},
+
+Thanks for your request. [Brief summary of what was discussed during the call and the solution provided]. {employee_data.get('full_name', 'Our expert')} handled your {ticket_data.get('category', 'issue')} and provided [key solution points from the conversation].
+
+[Any next steps or follow-up actions mentioned] or you can contact {employee_data.get('full_name', 'them')} directly for further assistance.
+
+This solution was coordinated by Anna, our Support Specialist.
+
+Best,
+Support Team
+
+IMPORTANT: 
+- Keep the response under 150 words total
+- Focus on the actual solution from the conversation, not internal processes
+- Use professional email format as shown above
+- This is a CALL COMPLETION event requiring FINAL SOLUTION GENERATION through the maestro-final workflow stage
+- Extract key solution points from the conversation transcript above"""
                     
-                    # 🔧 HOTFIX: Handle method not found due to cached class instances
-                    workflow_instance = workflow_system.workflow
-                    if hasattr(workflow_instance, 'process_end_call'):
-                        print(f"🔄 END_CALL: Using process_end_call method")
-                        result = workflow_instance.process_end_call(workflow_input)
-                    else:
-                        print(f"⚠️ END_CALL: process_end_call method not found (cached class), forcing reload...")
+                    try:
+                        # Use the service integration to process the end-of-call workflow
+                        print("🔄 END_CALL: Processing conversation through service integration...")
+                        print(f"🔄 END_CALL: === CONVERSATION QUERY DEBUG ===")
+                        print(f"🔄 END_CALL: Query length: {len(conversation_query)}")
+                        print(f"🔄 END_CALL: Query preview: {conversation_query[:300]}...")
+                        print(f"🔄 END_CALL: Username: {employee_data.get('username')}")
+                        print(f"🔄 END_CALL: Ticket ID: {ticket_data.get('id')}")
+                        print(f"🔄 END_CALL: === END DEBUG ===")
                         
-                        # Force reload the workflow module
-                        import importlib
-                        import sys
-                        if 'graphs.workflow' in sys.modules:
-                            importlib.reload(sys.modules['graphs.workflow'])
+                        result = service_integration.process_workflow_query(
+                            query=conversation_query,
+                            username=employee_data.get('username'),
+                            ticket_id=ticket_data.get('id')
+                        )
                         
-                        # Try again after reload
-                        if hasattr(workflow_instance, 'process_end_call'):
-                            print(f"✅ END_CALL: Method found after reload")
-                            result = workflow_instance.process_end_call(workflow_input)
+                        print(f"🔄 END_CALL: Service integration result: {result}")
+                        print(f"🔄 END_CALL: Full result structure debug:")
+                        print(f"🔄 END_CALL: Result type: {type(result)}")
+                        if isinstance(result, dict):
+                            print(f"🔄 END_CALL: Top-level keys: {list(result.keys())}")
+                            for key, value in result.items():
+                                print(f"🔄 END_CALL: Key '{key}': type={type(value)}, value={str(value)[:100]}...")
+                                if isinstance(value, dict) and key == 'results':
+                                    print(f"🔄 END_CALL: Results sub-keys: {list(value.keys())}")
+                                    for sub_key, sub_value in value.items():
+                                        print(f"🔄 END_CALL: Results.{sub_key}: type={type(sub_value)}, value={str(sub_value)[:100]}...")
                         else:
-                            print(f"❌ END_CALL: Method still not found, using fallback direct processing")
-                            # Direct processing fallback - manually call the workflow steps
-                            try:
-                                # Convert to proper state format
-                                state = {
-                                    "messages": workflow_input.get("messages", []),
-                                    "current_step": "call_completion_handler",
-                                    "results": workflow_input.get("results", {}),
-                                    "metadata": workflow_input.get("metadata", {}),
-                                    "query": ""
-                                }
-                                
-                                # Step 1: Call completion handler
-                                state = workflow_instance._call_completion_handler_step(state)
-                                call_completed = state["results"].get("call_completed", False)
-                                
-                                if call_completed:
-                                    # Step 2: Check for redirect
-                                    redirect_decision = workflow_instance._check_for_redirect(state)
-                                    
-                                    if redirect_decision == "redirect":
-                                        # Step 3: Process redirect
-                                        state = workflow_instance._redirect_detector_step(state)
-                                        state = workflow_instance._employee_searcher_step(state)
-                                        state = workflow_instance._maestro_redirect_selector_step(state)
-                                        state = workflow_instance._vocal_assistant_redirect_step(state)
-                                
-                                # Step 4: Final processing
-                                state = workflow_instance._maestro_final_step(state)
-                                result = state["results"]
-                                
-                                print(f"✅ END_CALL: Fallback processing completed successfully")
-                                
-                            except Exception as fallback_error:
-                                print(f"❌ END_CALL: Fallback processing failed: {fallback_error}")
-                                result = {"error": f"END_CALL processing failed: {str(fallback_error)}"}
-                    
-                    execution_time = time.time() - start_time
-                    print(f"🔄 END_CALL: Workflow completed in {execution_time:.2f} seconds")
-                    
-                    # 🔧 FIX: Check if result is already properly formatted (early return from redirect)
-                    if isinstance(result, dict) and "status" in result and "call_active" in result:
-                        print(f"🔄 END_CALL: Early return detected - preserving format")
-                        return result  # Don't wrap - it's already correctly formatted
-                    else:
-                        print(f"🔄 END_CALL: Normal result - wrapping in results format")
-                        return {"results": result}  # Wrap to match expected format
+                            print(f"🔄 END_CALL: Non-dict result: {str(result)[:200]}...")
+                        
+                        execution_time = time.time() - start_time
+                        print(f"🔄 END_CALL: Workflow completed in {execution_time:.2f} seconds")
+                        
+                        return result
+                        
+                    except Exception as e:
+                        print(f"❌ END_CALL: Service integration processing failed: {e}")
+                        execution_time = time.time() - start_time
+                        print(f"🔄 END_CALL: Failed after {execution_time:.2f} seconds")
+                        return {
+                            "status": "error",
+                            "error": f"Failed to process call completion: {str(e)}",
+                            "conversation_summary": conversation_summary
+                        }
                 
                 # Use ThreadPoolExecutor for thread-safe timeout
                 with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -406,16 +377,72 @@ def generate_solution_from_call():
                 print(f"🔄 END_CALL: Result type: {type(result)}")
                 print(f"🔄 END_CALL: Result keys: {list(result.keys()) if isinstance(result, dict) else 'Not a dict'}")
                 
+                # Enhanced debugging for solution extraction
+                print(f"🔄 END_CALL: === SOLUTION EXTRACTION DEBUG ===")
+                
                 # Check if a redirect was detected
                 redirect_result = result.get("results", {}).get("redirect_info") if "results" in result else result.get("redirect_info")
-                # 🔧 FIXED: Get maestro final result from correct location
-                maestro_final_result = (
-                    result.get("final_response") or 
-                    result.get("synthesis") or 
-                    result.get("results", {}).get("final_response") or
-                    result.get("results", {}).get("synthesis") or
-                    result.get("results", {}).get("maestro_final", {})
-                )
+                
+                # 🔧 ENHANCED: Look for maestro final result in multiple locations with detailed logging
+                print(f"🔄 END_CALL: Checking for maestro final result...")
+                
+                # Priority 1: Service integration returns response in 'result' field
+                maestro_final_result = result.get("result")
+                if maestro_final_result:
+                    print(f"🔄 END_CALL: Found solution in 'result' field (service integration format): {str(maestro_final_result)[:100]}...")
+                
+                # Priority 2: Direct response field
+                if not maestro_final_result:
+                    maestro_final_result = result.get("response")
+                    if maestro_final_result:
+                        print(f"🔄 END_CALL: Found solution in 'response' field: {str(maestro_final_result)[:100]}...")
+                
+                # Priority 3: Final response field
+                if not maestro_final_result:
+                    maestro_final_result = result.get("final_response")
+                    if maestro_final_result:
+                        print(f"🔄 END_CALL: Found solution in 'final_response' field: {str(maestro_final_result)[:100]}...")
+                
+                # Priority 4: Synthesis field
+                if not maestro_final_result:
+                    maestro_final_result = result.get("synthesis")
+                    if maestro_final_result:
+                        print(f"🔄 END_CALL: Found solution in 'synthesis' field: {str(maestro_final_result)[:100]}...")
+                
+                # Priority 4: Results structure
+                if not maestro_final_result and result.get("results"):
+                    results = result.get("results", {})
+                    print(f"🔄 END_CALL: Searching in results structure with keys: {list(results.keys())}")
+                    
+                    # Check various result fields
+                    maestro_final_result = (
+                        results.get("response") or
+                        results.get("final_response") or 
+                        results.get("synthesis") or
+                        results.get("maestro_final") or
+                        results.get("solution")
+                    )
+                    
+                    if maestro_final_result:
+                        print(f"🔄 END_CALL: Found solution in results structure: {str(maestro_final_result)[:100]}...")
+                
+                # Priority 5: Look for any field containing "final" or "solution"
+                if not maestro_final_result and isinstance(result, dict):
+                    print(f"🔄 END_CALL: Searching for solution-related fields...")
+                    for key, value in result.items():
+                        if any(keyword in key.lower() for keyword in ['final', 'solution', 'response', 'answer']):
+                            if isinstance(value, str) and len(value.strip()) > 10:
+                                maestro_final_result = value
+                                print(f"🔄 END_CALL: Found solution in '{key}' field: {str(value)[:100]}...")
+                                break
+                            elif isinstance(value, dict):
+                                for sub_key, sub_value in value.items():
+                                    if isinstance(sub_value, str) and len(sub_value.strip()) > 10:
+                                        maestro_final_result = sub_value
+                                        print(f"🔄 END_CALL: Found solution in '{key}.{sub_key}' field: {str(sub_value)[:100]}...")
+                                        break
+                                if maestro_final_result:
+                                    break
                 
                 # 🔧 CHECK: Is this a redirect call initiation or just redirect detection?
                 call_info_from_result = result.get("results", {}).get("call_info")
@@ -493,33 +520,61 @@ If you need further assistance, please create a new support ticket."""
                 else:
                     print("🔄 END_CALL: No redirect detected - looking for regular solution")
                 
-                # Get the final solution from Maestro (only if no redirect was processed)
+                print(f"🔄 END_CALL: === FINAL SOLUTION PROCESSING ===")
+                
+                # Extract the actual solution text
                 final_solution = None
                 if isinstance(maestro_final_result, dict):
-                    final_solution = maestro_final_result.get("result") or maestro_final_result.get("response")
-                elif isinstance(maestro_final_result, str):
-                    final_solution = maestro_final_result
-                
-                # 🔧 FIXED: Check for final response in multiple locations
-                if not final_solution:
-                    # First check direct final_response and synthesis
+                    # For dict results, look for common response keys
                     final_solution = (
-                        result.get("final_response") or 
-                        result.get("synthesis") or
-                        result.get("results", {}).get("final_response") or
-                        result.get("results", {}).get("synthesis")
+                        maestro_final_result.get("result") or 
+                        maestro_final_result.get("response") or
+                        maestro_final_result.get("solution") or
+                        maestro_final_result.get("answer") or
+                        maestro_final_result.get("text")
                     )
+                    print(f"� END_CALL: Extracted from dict using keys: {final_solution[:100] if final_solution else 'None'}...")
+                elif isinstance(maestro_final_result, str) and len(maestro_final_result.strip()) > 20:
+                    # Check if this looks like a real solution vs an error message
+                    solution_text = maestro_final_result.strip()
+                    
+                    # Skip obvious error patterns
+                    error_patterns = [
+                        "query processing failed",
+                        "workflow processing incomplete", 
+                        "no response generated",
+                        "error:",
+                        "failed:",
+                        "timeout",
+                        "could not"
+                    ]
+                    
+                    is_error = any(pattern.lower() in solution_text.lower() for pattern in error_patterns)
+                    
+                    if not is_error:
+                        final_solution = solution_text
+                        print(f"🔄 END_CALL: Valid solution text extracted: {final_solution[:100]}...")
+                    else:
+                        print(f"🔄 END_CALL: Detected error message, not a solution: {solution_text[:100]}...")
                 
-                # If still no solution, look for any final response in the workflow results  
-                if not final_solution and result.get("results"):
-                    # Look for any final response in the workflow results
-                    for key, value in result.get("results", {}).items():
-                        if key.endswith("_final") and isinstance(value, (str, dict)):
-                            if isinstance(value, dict):
-                                final_solution = value.get("result") or value.get("response")
-                            else:
-                                final_solution = value
-                            break
+                # 🔧 ENHANCED: Additional fallback checks with better extraction
+                if not final_solution:
+                    print(f"🔄 END_CALL: No direct solution found, checking alternative locations...")
+                    
+                    # Check for direct response in root
+                    if result.get("response") and isinstance(result["response"], str):
+                        final_solution = result["response"].strip()
+                        print(f"🔄 END_CALL: Found in root response: {final_solution[:100]}...")
+                    
+                    # Check for any string field with substantial content
+                    elif isinstance(result, dict):
+                        for key, value in result.items():
+                            if isinstance(value, str) and len(value.strip()) > 50:
+                                # Skip error messages and status fields
+                                if not any(skip_word in key.lower() for skip_word in ['error', 'status', 'debug', 'log']):
+                                    final_solution = value.strip()
+                                    print(f"🔄 END_CALL: Found substantial text in '{key}': {final_solution[:100]}...")
+                                    break
                 
                 print(f"🔄 END_CALL: Final solution extracted: {'Yes' if final_solution else 'No'}")
                 if final_solution:

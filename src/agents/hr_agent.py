@@ -42,12 +42,13 @@ except ImportError:
 class HRAgent(BaseAgent):
     """Agent specialized in finding the best employee to handle tickets when documents don't have answers."""
     
-    def __init__(self, config: Dict[str, Any] = None, tools: List[BaseTool] = None, availability_tool=None):
-        super().__init__("HRAgent", config, tools)
+    def __init__(self, settings=None, tools: List[BaseTool] = None, availability_tool=None):
+        super().__init__("HRAgent", settings, tools)
         self.availability_tool = availability_tool
         
         # Create agent executor with tools if available
-        if self.llm and self.tools:
+        llm = self.get_llm()
+        if llm and self.tools:
             self.agent_executor = self._create_agent_executor()
         else:
             self.agent_executor = None
@@ -55,13 +56,17 @@ class HRAgent(BaseAgent):
     def _create_agent_executor(self):
         """Create an agent executor with tools."""
         try:
+            llm = self.get_llm()
+            if not llm:
+                return None
+                
             prompt = ChatPromptTemplate.from_messages([
                 ("system", self.get_system_prompt()),
                 ("human", "{input}"),
                 ("placeholder", "{agent_scratchpad}"),
             ])
             
-            agent = create_tool_calling_agent(self.llm, self.tools, prompt)
+            agent = create_tool_calling_agent(llm, self.tools, prompt)
             return AgentExecutor(agent=agent, tools=self.tools, verbose=False)
         except Exception as e:
             print(f"⚠️ Failed to create HR agent executor: {e}")
@@ -187,6 +192,7 @@ class HRAgent(BaseAgent):
             profile = {
                 "id": str(emp.get('id', emp.get('username', 'unknown'))),
                 "name": emp.get('full_name', 'Unknown'),
+                "full_name": emp.get('full_name', 'Unknown'),  # Include both for robustness
                 "username": emp.get('username', 'unknown'),
                 "role": emp.get('role_in_company', ''),
                 "expertise": emp.get('expertise', ''),
@@ -269,11 +275,11 @@ CRITICAL RULES:
             # print(f"🤖 AI MATCHING: Query - {ticket.title}: {ticket.description}")
             
             # Use the LLM for AI matching if available
-            if not self.llm:
-                # print(f"🤖 AI MATCHING: ❌ No LLM configured, falling back to basic matching")
-                return self._fallback_basic_matching(ticket, candidates)
+            llm = self.get_llm()
+            if not llm:
+                raise ValueError("No LLM configured for HRAgent - agent cannot function without LLM")
             
-            ai_response = self.llm.invoke(prompt)
+            ai_response = llm.invoke(prompt)
             ai_content = ai_response.content if hasattr(ai_response, 'content') else str(ai_response)
             
             # print(f"🤖 AI MATCHING: Raw AI response length: {len(ai_content)} characters")
@@ -286,11 +292,13 @@ CRITICAL RULES:
                     ai_matches = json.loads(json_str)
                     # print(f"🤖 AI MATCHING: Successfully parsed {len(ai_matches)} AI matches")
                 except json.JSONDecodeError as e:
-                    print(f"🤖 AI MATCHING: ❌ JSON parsing error: {e}")
-                    return self._fallback_basic_matching(ticket, candidates)
+                    error_msg = f"AI response JSON parsing failed: {e}"
+                    print(f"🤖 AI MATCHING: ❌ {error_msg}")
+                    raise ValueError(error_msg)
             else:
-                print(f"🤖 AI MATCHING: Failed to extract JSON from AI response")
-                return self._fallback_basic_matching(ticket, candidates)
+                error_msg = "Failed to extract JSON from AI response"
+                print(f"🤖 AI MATCHING: ❌ {error_msg}")
+                raise ValueError(error_msg)
             
             # Convert AI matches to HREmployeeMatch objects
             matches = []
@@ -343,43 +351,13 @@ CRITICAL RULES:
             return matches
             
         except json.JSONDecodeError as e:
-            print(f"🤖 AI MATCHING: ❌ JSON parsing error: {e}")
-            return self._fallback_basic_matching(ticket, candidates)
+            error_msg = f"JSON parsing error in AI matching: {e}"
+            print(f"🤖 AI MATCHING: ❌ {error_msg}")
+            raise ValueError(error_msg)
         except Exception as e:
-            print(f"🤖 AI MATCHING: ❌ General error in AI matching: {e}")
-            return self._fallback_basic_matching(ticket, candidates)
-    
-    def _fallback_basic_matching(self, ticket: HRTicketRequest, candidates: List[Dict]) -> List[HREmployeeMatch]:
-        """Fallback basic matching when AI fails."""
-        print(f"🔄 FALLBACK: Using basic matching as AI fallback")
-        
-        matches = []
-        for emp in candidates[:3]:  # Return first 3 as basic fallback
-            try:
-                employee_match = HREmployeeMatch(
-                    employee_id=str(emp.get('id', emp.get('username', 'unknown'))),
-                    username=emp.get('username', 'unknown'),
-                    name=emp.get('full_name', 'Unknown'),
-                    email=emp.get('email', 'unknown@company.com'),
-                    department=emp.get('department', 'Unknown'),
-                    skills=[],
-                    availability_status=emp.get('availability_status', 'Unknown'),
-                    workload_level=int(emp.get('workload_level', 50)),
-                    overall_score=0.5,
-                    skill_match_score=0.5,
-                    availability_score=1.0 if emp.get('availability_status') == 'Available' else 0.5,
-                    workload_score=0.5,
-                    department_match_score=0.5,
-                    matching_skills=[],
-                    missing_skills=[],
-                    match_reasoning="Basic fallback match - AI analysis unavailable"
-                )
-                matches.append(employee_match)
-            except Exception as e:
-                print(f"🔄 FALLBACK: Error in basic matching for {emp.get('full_name', 'Unknown')}: {e}")
-                continue
-        
-        return matches
+            error_msg = f"General error in AI matching: {e}"
+            print(f"🤖 AI MATCHING: ❌ {error_msg}")
+            raise RuntimeError(error_msg)
     
     def _score_employee_match(self, ticket: HRTicketRequest, employee: Dict) -> HREmployeeMatch:
         """Score how well an employee matches a ticket using enhanced algorithm."""
@@ -455,28 +433,11 @@ CRITICAL RULES:
                 match_reasoning=reasoning
             )
         except ValidationError as e:
-            # Log validation error and create a fallback match
-            print(f"     ❌ Validation error for employee {employee_id}: {e}")
+            # No fallback - log error and re-raise
+            error_msg = f"Employee data validation failed for {employee_id}: {e}"
+            print(f"     ❌ {error_msg}")
             print(f"     Employee data: {employee}")
-            
-            # Create fallback match with minimal valid data
-            return HREmployeeMatch(
-                employee_id=employee_id,
-                name=name,
-                email=email,
-                department=department,
-                skills=[],
-                availability_status="Unknown",
-                workload_level=50,
-                overall_score=0.0,
-                skill_match_score=0.0,
-                availability_score=0.0,
-                workload_score=0.0,
-                department_match_score=0.0,
-                matching_skills=[],
-                missing_skills=[],
-                match_reasoning=f"Validation error for {name} - using fallback data"
-            )
+            raise ValueError(error_msg) from e
     
     def _extract_employee_skills(self, employee: Dict) -> List[str]:
         """Extract all relevant skills from employee data."""

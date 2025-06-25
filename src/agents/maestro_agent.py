@@ -13,11 +13,12 @@ from .base_agent import BaseAgent
 class MaestroAgent(BaseAgent):
     """Agent specialized in query processing and response synthesis."""
     
-    def __init__(self, config: Dict[str, Any] = None, tools: List[BaseTool] = None):
-        super().__init__("MaestroAgent", config, tools)
+    def __init__(self, settings=None, tools: List[BaseTool] = None):
+        super().__init__("MaestroAgent", settings, tools)
         
         # Create agent executor with tools if available
-        if self.llm and self.tools:
+        llm = self.get_llm()
+        if llm and self.tools:
             self.agent_executor = self._create_agent_executor()
         else:
             self.agent_executor = None
@@ -25,6 +26,10 @@ class MaestroAgent(BaseAgent):
     def _create_agent_executor(self):
         """Create an agent executor with tools."""
         try:
+            llm = self.get_llm()
+            if not llm:
+                return None
+                
             # Create a simple prompt for tool-enabled agent
             prompt = ChatPromptTemplate.from_messages([
                 ("system", self.get_system_prompt()),
@@ -33,7 +38,7 @@ class MaestroAgent(BaseAgent):
             ])
             
             # Create tool-calling agent
-            agent = create_tool_calling_agent(self.llm, self.tools, prompt)
+            agent = create_tool_calling_agent(llm, self.tools, prompt)
             return AgentExecutor(agent=agent, tools=self.tools, verbose=False)
         except Exception as e:
             print(f"⚠️ Failed to create agent executor: {e}")
@@ -72,10 +77,11 @@ Provide clear, search-optimized queries that can be used to find relevant docume
                     }
                 else:
                     # Fallback to direct LLM call
-                    if not self.llm:
+                    llm = self.get_llm()
+                    if not llm:
                         return {"agent": self.name, "status": "No LLM configured", "result": query}
                     
-                    response = self.llm.invoke(f"{self.get_system_prompt()}\n\n{preprocess_input}")
+                    response = llm.invoke(f"{self.get_system_prompt()}\n\n{preprocess_input}")
                     return {
                         "agent": self.name,
                         "status": "success",
@@ -84,7 +90,30 @@ Provide clear, search-optimized queries that can be used to find relevant docume
                         "stage": "preprocess"
                     }
             elif stage == "final_review":
-                response = self.llm.invoke(query)
+                final_review_prompt = f"""
+Please review and format the following solution into a brief, professional email-style response:
+
+{query}
+
+Use this exact format:
+
+Subject: Re: [TICKET SUBJECT]
+
+Hi [USER NAME],
+
+Thanks for your request. [Brief summary of the solution]. [Key solution points in 1-2 sentences].
+
+[Any additional steps or contact information].
+
+This solution was coordinated by Anna, our Support Specialist.
+
+Best,
+Support Team
+
+Keep the response under 150 words and focus on the actual solution, not internal processes.
+"""
+                llm = self.get_llm()
+                response = llm.invoke(final_review_prompt)
                 return {
                     "agent": self.name,
                     "status": "success",
@@ -115,15 +144,29 @@ Original Support Ticket: {query}
 
 Data Guardian's Findings: {data_guardian_result}
 
-Based on the local document search results above, please create a comprehensive, helpful response to the support ticket. 
+Based on the local document search results above, please create a brief, professional email-style response using this exact format:
+
+Subject: Re: [TICKET SUBJECT]
+
+Hi [USER NAME],
+
+Thanks for your question. [Brief summary of the answer from the documents]. [Key information from the findings in 1-2 sentences].
+
+[Any additional helpful information or next steps if relevant].
+
+This solution was provided by Anna, our Support Specialist.
+
+Best,
+Support Team
 
 Guidelines:
-1. Use the document information as the primary source
-2. Provide clear, actionable answers
-3. Include source references when using document information
-4. Maintain a professional, supportive tone
+1. Keep response under 150 words total
+2. Use document information as the primary source
+3. Focus on answering the user's question directly
+4. Maintain professional, email-like tone
+5. Do not include internal processes or system details
 
-Create a complete response that directly addresses the ticket."""
+Create a complete email response that directly addresses the ticket."""
                     
                     if self.agent_executor:
                         # print(f"🎭 MaestroAgent synthesizing response from documents for: {query}")
@@ -138,10 +181,11 @@ Create a complete response that directly addresses the ticket."""
                         }
                     else:
                         # Fallback to direct LLM call
-                        if not self.llm:
+                        llm = self.get_llm()
+                        if not llm:
                             return {"agent": self.name, "status": "No LLM configured", "result": "Synthesis failed"}
                         
-                        response = self.llm.invoke(f"{self.get_system_prompt()}\n\n{synthesis_input}")
+                        response = llm.invoke(f"{self.get_system_prompt()}\n\n{synthesis_input}")
                         return {
                             "agent": self.name,
                             "status": "success",
@@ -232,12 +276,21 @@ Create a complete response that directly addresses the ticket."""
 
 Your role has two stages:
 1. PREPROCESSING: Analyze support tickets and reformulate them into optimized search queries
-2. SYNTHESIS: Take search results from local documents and create comprehensive responses
+2. SYNTHESIS: Take search results from local documents and create brief, professional email-style responses
 
 Key responsibilities:
 - Understand user intent from support tickets
 - Create clear search queries for document retrieval
-- Synthesize information from multiple sources into coherent responses
-- Provide professional, helpful responses with proper source attribution
+- Synthesize information from multiple sources into concise email responses
+- Provide professional, helpful responses in email format under 150 words
+- Focus on actual solutions, not internal processes
 
-Always be direct, helpful, and professional. Focus on solving the user's specific problem."""
+Email format template:
+Subject: Re: [TICKET SUBJECT]
+Hi [USER NAME],
+[Brief solution summary]
+This solution was [provided by/coordinated by] [Agent/Employee name].
+Best,
+Support Team
+
+Always be direct, helpful, and professional. Focus on solving the user's specific problem concisely."""

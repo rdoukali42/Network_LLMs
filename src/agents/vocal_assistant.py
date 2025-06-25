@@ -239,7 +239,7 @@ class GeminiChat:
             
             if is_employee:
                 # Anna AI Assistant system prompt - conversation-aware and friendly
-                system_prompt = f"""You are Anna, a friendly AI assistant having a natural conversation with {employee_data.get('full_name', 'Unknown')} about a support ticket. You speak in a warm, human-like tone.
+                system_prompt = f"""You are Anna, a friendly AI assistant having a natural conversation with {employee_data.get('full_name') or employee_data.get('name', 'Unknown')} about a support ticket. You speak in a warm, human-like tone.
 
 IMPORTANT: You MUST start your response with these exact headers:
 
@@ -265,7 +265,7 @@ CONVERSATION FLOW:
 - Only ask clarifying questions when absolutely necessary for ticket resolution
 - Respect when employees give complete answers or want to move forward
 
-Employee: {employee_data.get('full_name', 'Unknown')} - {employee_data.get('role_in_company', 'Employee')}
+Employee: {employee_data.get('full_name') or employee_data.get('name', 'Unknown')} - {employee_data.get('role_in_company', 'Employee')}
 Expertise: {employee_data.get('expertise', 'General IT')}
 
 Ticket Info:
@@ -294,9 +294,9 @@ RESPONSE FORMAT:
 TONE: Friendly, warm, conversational, appreciative of their expertise. Sound like a helpful colleague, not a robotic assistant."""
             else:
                 # Solution generation system prompt - formats employee's solution professionally
-                system_prompt = f"""You are an IT support documentation assistant. Based on the conversation between Anna (AI assistant) and {employee_data.get('full_name', 'Unknown')}, create a professional ticket resolution.
+                system_prompt = f"""You are an IT support documentation assistant. Based on the conversation between Anna (AI assistant) and {employee_data.get('full_name') or employee_data.get('name', 'Unknown')}, create a professional ticket resolution.
 
-The employee {employee_data.get('full_name', 'Unknown')} ({employee_data.get('role_in_company', 'Employee')}) has provided their solution for:
+The employee {employee_data.get('full_name') or employee_data.get('name', 'Unknown')} ({employee_data.get('role_in_company', 'Employee')}) has provided their solution for:
 
 Ticket: {ticket_data.get('subject', 'No subject')}
 Issue: {ticket_data.get('description', 'No description')}
@@ -365,7 +365,9 @@ class VocalAssistantAgent(BaseAgent):
             call_action = input_data.get("action", "initiate_call")
             
             print(f"   � Call action: {call_action}")
-            print(f"   � Employee: {employee_data.get('full_name', 'Unknown')}")
+            # Handle both 'full_name' and 'name' fields from different agent responses
+            employee_name = employee_data.get('full_name') or employee_data.get('name', 'Unknown')
+            print(f"   � Employee: {employee_name}")
             print(f"   🎫 Ticket: {ticket_data.get('subject', 'No subject')}")
             
             if call_action == "end_call":
@@ -391,14 +393,20 @@ class VocalAssistantAgent(BaseAgent):
                 
                 print(f"   📞 DEBUG: Final conversation length: {len(final_conversation)}")
                 
-                # 🆕 NEW: Analyze conversation for redirect requests
+                # 🆕 ENHANCED: Comprehensive redirect detection with logging and fallbacks
                 if final_conversation and len(final_conversation.strip()) > 10:
                     print(f"   🔍 DEBUG: Analyzing conversation for redirect requests...")
+                    print(f"   🔍 DEBUG: Conversation length: {len(final_conversation)} chars")
+                    print(f"   🔍 DEBUG: First 200 chars: {final_conversation[:200]}...")
+                    
                     redirect_analysis = self._analyze_conversation_for_redirect(final_conversation)
                     
+                    print(f"   🔍 DEBUG: Redirect analysis result: {redirect_analysis}")
+                    
                     if redirect_analysis.get("redirect_requested"):
-                        print(f"   🔄 DEBUG: REDIRECT DETECTED in conversation!")
+                        print(f"   🔄 DEBUG: ✅ REDIRECT DETECTED in conversation!")
                         print(f"   🔄 DEBUG: Redirect info: {redirect_analysis.get('redirect_employee_info', {})}")
+                        print(f"   🔄 DEBUG: Detection method: {redirect_analysis.get('detection_method', 'unknown')}")
                         
                         # Add redirect markers to conversation summary for workflow detection
                         structured_summary = f"""REDIRECT_REQUESTED: True
@@ -412,8 +420,11 @@ ORIGINAL_CONVERSATION:
                         print(f"   🔄 DEBUG: Enhanced conversation with redirect markers")
                     else:
                         print(f"   ✅ DEBUG: No redirect detected in conversation")
+                        print(f"   ✅ DEBUG: Detection method: {redirect_analysis.get('detection_method', 'none')}")
                 else:
                     print(f"   ⚠️ DEBUG: No conversation content to analyze for redirects")
+                    print(f"   ⚠️ DEBUG: Conversation data available: {bool(conversation_data)}")
+                    print(f"   ⚠️ DEBUG: Conversation summary available: {bool(conversation_summary)}")
                 
                 result = {
                     "agent": self.name,
@@ -422,7 +433,7 @@ ORIGINAL_CONVERSATION:
                     "conversation_summary": final_conversation,
                     "conversation_data": conversation_data,
                     "call_duration": call_duration,
-                    "result": f"Voice call completed with {employee_data.get('full_name', 'Unknown')} for ticket {ticket_data.get('id', 'unknown')}"
+                    "result": f"Voice call completed with {employee_data.get('full_name') or employee_data.get('name', 'Unknown')} for ticket {ticket_data.get('id', 'unknown')}"
                 }
                 
                 print(f"   ✅ DEBUG: Call end result: {result}")
@@ -434,7 +445,7 @@ ORIGINAL_CONVERSATION:
                 # Prepare call data for UI
                 call_info = {
                     "ticket_id": ticket_data.get("id", "unknown"),
-                    "employee_name": employee_data.get("full_name", "Unknown"),
+                    "employee_name": employee_data.get("full_name") or employee_data.get("name", "Unknown"),
                     "employee_username": employee_data.get("username", "unknown"),
                     "ticket_subject": ticket_data.get("subject", "No subject"),
                     "call_status": "incoming"
@@ -448,7 +459,7 @@ ORIGINAL_CONVERSATION:
                     "status": "call_initiated",
                     "action": "start_call",
                     "call_info": call_info,
-                    "result": f"Voice call initiated with {employee_data.get('full_name', 'Unknown')} for ticket {ticket_data.get('id', 'unknown')}"
+                    "result": f"Voice call initiated with {employee_data.get('full_name') or employee_data.get('name', 'Unknown')} for ticket {ticket_data.get('id', 'unknown')}"
                 }
                 
                 print(f"   ✅ DEBUG: VocalAssistant result: {result}")
@@ -460,12 +471,12 @@ ORIGINAL_CONVERSATION:
                 redirect_reason = input_data.get("redirect_reason", {})
                 print(f"   🔄 DEBUG: This is a REDIRECT call")
                 print(f"   🔄 DEBUG: Redirect reason: {redirect_reason}")
-                print(f"   🔄 DEBUG: Original employee requested redirect to: {employee_data.get('full_name', 'Unknown')}")
+                print(f"   🔄 DEBUG: Original employee requested redirect to: {employee_data.get('full_name') or employee_data.get('name', 'Unknown')}")
                 
                 # Similar to initiate_call but for redirected employee
                 call_info = {
                     "ticket_id": ticket_data.get("id", "unknown"),
-                    "employee_name": employee_data.get("full_name", "Unknown"),
+                    "employee_name": employee_data.get("full_name") or employee_data.get("name", "Unknown"),
                     "employee_username": employee_data.get("username", "unknown"),
                     "ticket_subject": ticket_data.get("subject", "No subject"),
                     "call_status": "redirected_incoming",
@@ -477,7 +488,7 @@ ORIGINAL_CONVERSATION:
                     "status": "redirect_call_initiated",
                     "action": "start_redirect_call", 
                     "call_info": call_info,
-                    "result": f"Redirect call initiated with {employee_data.get('full_name', 'Unknown')} for ticket {ticket_data.get('id', 'unknown')}"
+                    "result": f"Redirect call initiated with {employee_data.get('full_name') or employee_data.get('name', 'Unknown')} for ticket {ticket_data.get('id', 'unknown')}"
                 }
                 
                 print(f"   ✅ DEBUG: Redirect call result: {result}")
@@ -673,12 +684,141 @@ Anna's primary responsibilities:
 Anna acts as a voice-enabled intermediary that connects human expertise with ticket resolution through natural conversation."""
     
     def _analyze_conversation_for_redirect(self, conversation_text: str) -> Dict[str, Any]:
-        """Analyze conversation text to detect redirect requests and extract structured information."""
-        print(f"   🔍 CONVERSATION ANALYSIS: Starting analysis...")
-        print(f"   🔍 CONVERSATION ANALYSIS: Text length: {len(conversation_text)}")
+        """🆕 ENHANCED: Analyze conversation for redirect requests with multiple detection methods and comprehensive logging."""
+        print(f"   🔍 _analyze_conversation_for_redirect: Starting analysis...")
+        print(f"   🔍 _analyze_conversation_for_redirect: Text length: {len(conversation_text)}")
         
-        # AI prompt to analyze conversation for redirect requests
-        analysis_prompt = f"""
+        # Method 1: Check for existing structured headers (from previous workflow steps)
+        header_detection = self._check_structured_headers(conversation_text)
+        if header_detection["found"]:
+            print(f"   🔍 Method 1 - Structured Headers: ✅ REDIRECT FOUND")
+            return {
+                "redirect_requested": True,
+                "detection_method": "structured_headers",
+                "redirect_employee_info": header_detection["employee_info"]
+            }
+        else:
+            print(f"   🔍 Method 1 - Structured Headers: ❌ No structured headers found")
+        
+        # Method 2: Pattern matching fallback
+        pattern_detection = self._check_redirect_patterns(conversation_text)
+        if pattern_detection["found"]:
+            print(f"   🔍 Method 2 - Pattern Matching: ✅ REDIRECT FOUND")
+            return {
+                "redirect_requested": True,
+                "detection_method": "pattern_matching",
+                "redirect_employee_info": pattern_detection["employee_info"]
+            }
+        else:
+            print(f"   🔍 Method 2 - Pattern Matching: ❌ No redirect patterns found")
+        
+        # Method 3: AI-powered analysis using Gemini (enhanced)
+        try:
+            print(f"   🔍 Method 3 - AI Analysis: Starting enhanced Gemini analysis...")
+            ai_detection = self._ai_analyze_for_redirect_enhanced(conversation_text)
+            if ai_detection["found"]:
+                print(f"   🔍 Method 3 - AI Analysis: ✅ REDIRECT FOUND")
+                return {
+                    "redirect_requested": True,
+                    "detection_method": "ai_analysis_enhanced",
+                    "redirect_employee_info": ai_detection["employee_info"]
+                }
+            else:
+                print(f"   🔍 Method 3 - AI Analysis: ❌ No redirect detected by AI")
+        except Exception as e:
+            print(f"   🔍 Method 3 - AI Analysis: ⚠️ ERROR: {str(e)}")
+        
+        print(f"   🔍 All Methods: ❌ No redirect detected")
+        return {
+            "redirect_requested": False,
+            "detection_method": "none_detected",
+            "redirect_employee_info": {}
+        }
+
+    def _check_structured_headers(self, conversation: str) -> Dict[str, Any]:
+        """Check for existing structured redirect headers in conversation."""
+        try:
+            # Look for structured headers that might already exist
+            if "REDIRECT_REQUESTED:" in conversation and "USERNAME_TO_REDIRECT:" in conversation:
+                print(f"   🔍 Structured headers found in conversation")
+                lines = conversation.split('\n')
+                employee_info = {}
+                
+                for line in lines:
+                    line = line.strip()
+                    if line.startswith("USERNAME_TO_REDIRECT:"):
+                        employee_info["username"] = line.split(":", 1)[1].strip()
+                    elif line.startswith("ROLE_OF_THE_REDIRECT_TO:"):
+                        employee_info["role"] = line.split(":", 1)[1].strip()
+                    elif line.startswith("RESPONSIBILITIES:"):
+                        employee_info["responsibilities"] = line.split(":", 1)[1].strip()
+                
+                if employee_info.get("username", "NONE") != "NONE":
+                    return {"found": True, "employee_info": employee_info}
+            
+            return {"found": False, "employee_info": {}}
+        except Exception as e:
+            print(f"   ⚠️ Error checking structured headers: {str(e)}")
+            return {"found": False, "employee_info": {}}
+
+    def _check_redirect_patterns(self, conversation: str) -> Dict[str, Any]:
+        """Check for redirect requests using pattern matching."""
+        try:
+            conversation_lower = conversation.lower()
+            
+            # Enhanced redirect patterns
+            redirect_patterns = [
+                r"(?:can you |please )?(?:redirect|transfer|forward|connect|route)\s+(?:me|this|the (?:call|request))\s+to\s+(\w+)",
+                r"(?:i|we)\s+(?:need|want|would like)\s+to\s+(?:speak|talk)\s+(?:to|with)\s+(\w+)",
+                r"(?:forward|send|redirect)\s+(?:this|the request)\s+to\s+(\w+)",
+                r"(\w+)\s+(?:should|can|would be able to)\s+(?:handle|help|assist)",
+                r"(?:contact|call|reach out to)\s+(\w+)"
+            ]
+            
+            import re
+            for pattern in redirect_patterns:
+                match = re.search(pattern, conversation_lower)
+                if match:
+                    username = match.group(1).strip()
+                    print(f"   🔍 Pattern match found: '{username}' with pattern: {pattern}")
+                    
+                    # Try to extract more context around the username
+                    employee_info = {
+                        "username": username,
+                        "role": "UNKNOWN",
+                        "responsibilities": "UNKNOWN"
+                    }
+                    
+                    # Look for role/department context around the username
+                    context_start = max(0, match.start() - 100)
+                    context_end = min(len(conversation), match.end() + 100)
+                    context = conversation[context_start:context_end].lower()
+                    
+                    # Common role keywords
+                    if any(word in context for word in ["hr", "human resources", "personnel"]):
+                        employee_info["role"] = "HR Specialist"
+                        employee_info["responsibilities"] = "Human Resources matters"
+                    elif any(word in context for word in ["manager", "supervisor", "lead"]):
+                        employee_info["role"] = "Manager"
+                        employee_info["responsibilities"] = "Management and oversight"
+                    elif any(word in context for word in ["tech", "technical", "it", "system"]):
+                        employee_info["role"] = "Technical Specialist"
+                        employee_info["responsibilities"] = "Technical support and systems"
+                    
+                    return {"found": True, "employee_info": employee_info}
+            
+            return {"found": False, "employee_info": {}}
+        except Exception as e:
+            print(f"   ⚠️ Error in pattern matching: {str(e)}")
+            return {"found": False, "employee_info": {}}
+
+    def _ai_analyze_for_redirect_enhanced(self, conversation_text: str) -> Dict[str, Any]:
+        """Enhanced AI analysis using the existing Gemini client with better error handling."""
+        try:
+            print(f"   🔍 Starting enhanced AI analysis with Gemini...")
+            
+            # Enhanced analysis prompt with clearer instructions
+            analysis_prompt = f"""
 Analyze this voice call conversation to detect if there was a redirect request.
 
 CONVERSATION:
@@ -701,16 +841,17 @@ ROLE_OF_THE_REDIRECT_TO: [role/department or NONE]
 RESPONSIBILITIES: [reason for redirect or NONE]
 
 EXAMPLES:
-- "I meant redirect the call to sir" + "Sarah" → USERNAME_TO_REDIRECT: sarah
-- "forward to DevOps team" → ROLE_OF_THE_REDIRECT_TO: DevOps
-- "John would be better for this" → USERNAME_TO_REDIRECT: john
+- "redirect the call to Sarah" → REDIRECT_REQUESTED: True, USERNAME_TO_REDIRECT: sarah
+- "forward to DevOps team" → REDIRECT_REQUESTED: True, ROLE_OF_THE_REDIRECT_TO: DevOps
+- "John would be better for this" → REDIRECT_REQUESTED: True, USERNAME_TO_REDIRECT: john
 
 Be precise and only extract what is clearly mentioned.
-The REDIRECT_REQUESTED is always False, unless a redirect is explicitly requested in the conversation.
+Only return REDIRECT_REQUESTED: True if there is an explicit redirect request in the conversation.
 """
 
-        try:
-            # Use Gemini to analyze the conversation
+            print(f"   🔍 Sending enhanced prompt to Gemini (length: {len(analysis_prompt)} chars)")
+            
+            # Use the existing Gemini client
             analysis_result = self.gemini.chat(
                 analysis_prompt,
                 {},  # No ticket data needed for analysis
@@ -718,20 +859,25 @@ The REDIRECT_REQUESTED is always False, unless a redirect is explicitly requeste
                 is_employee=False
             )
             
-            print(f"   🔍 CONVERSATION ANALYSIS: AI result: {analysis_result[:200]}...")
+            print(f"   🔍 Raw Gemini response: {analysis_result}")
             
-            # Parse the structured response
+            # Parse the structured response using existing VocalResponse
             analysis_data = {"response": analysis_result}
             vocal_response = VocalResponse(analysis_data)
             
-            redirect_info = {
-                "redirect_requested": vocal_response.redirect_requested,
-                "redirect_employee_info": vocal_response.redirect_employee_info
-            }
+            print(f"   🔍 VocalResponse parsed - redirect_requested: {vocal_response.redirect_requested}")
+            print(f"   🔍 VocalResponse parsed - redirect_employee_info: {vocal_response.redirect_employee_info}")
             
-            print(f"   🔍 CONVERSATION ANALYSIS: Parsed result: {redirect_info}")
-            return redirect_info
-            
+            if vocal_response.redirect_requested and vocal_response.redirect_employee_info:
+                employee_info = vocal_response.redirect_employee_info
+                print(f"   🔍 Enhanced AI detected redirect: {employee_info}")
+                return {"found": True, "employee_info": employee_info}
+            else:
+                print(f"   🔍 Enhanced AI analysis: No redirect detected")
+                return {"found": False, "employee_info": {}}
+                
         except Exception as e:
-            print(f"   ❌ CONVERSATION ANALYSIS: Error analyzing conversation: {e}")
-            return {"redirect_requested": False, "redirect_employee_info": {}}
+            print(f"   ⚠️ Error in enhanced AI analysis: {str(e)}")
+            import traceback
+            print(f"   ⚠️ Full traceback: {traceback.format_exc()}")
+            return {"found": False, "employee_info": {}}

@@ -53,7 +53,7 @@ class VocalAI:
         """Initialize Gemini AI"""
         if GEMINI_API_KEY:
             genai.configure(api_key=GEMINI_API_KEY)
-            self.model = genai.GenerativeModel('gemini-pro')
+            self.model = genai.GenerativeModel('gemini-1.5-flash')
         else:
             st.error("Please set your GEMINI_API_KEY in secrets")
     

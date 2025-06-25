@@ -5,8 +5,18 @@ from typing import Dict, Any
 from langfuse import observe
 from .workflow_state import WorkflowState
 
-# Import redirect functionality
-from src.agents.vocal_assistant import VocalResponse
+# Import redirect functionality  
+try:
+    from ..agents.vocal_assistant import VocalResponse
+except ImportError:
+    try:
+        from agents.vocal_assistant import VocalResponse
+    except ImportError:
+        # Fallback for testing - create a mock VocalResponse
+        class VocalResponse:
+            def __init__(self, conversation_data):
+                self.redirect_requested = False
+                self.redirect_employee_info = {}
 
 
 class CallHandler:
@@ -80,8 +90,8 @@ class CallHandler:
             return "complete"
     
     def check_for_redirect(self, state: WorkflowState) -> str:
-        """Check if vocal assistant conversation indicates redirect needed."""
-        print(f"\n   🔍 REDIRECT CHECK: Starting redirect detection...")
+        """🆕 ENHANCED: Check if vocal assistant conversation indicates redirect needed."""
+        print(f"\n   🔍 REDIRECT CHECK: Starting enhanced redirect detection...")
         print(f"   🔍 REDIRECT CHECK: State keys: {list(state.get('results', {}).keys())}")
         
         # Get conversation data from call completion
@@ -105,56 +115,109 @@ class CallHandler:
                                vocal_result.get("conversation", "") or
                                vocal_result.get("result", ""))
 
-        print(f"   🔍 REDIRECT CHECK: Response text length: {len(response_text) if response_text else 0}")
+        print(f"   🔍 REDIRECT CHECK: Final response text length: {len(response_text) if response_text else 0}")
         if response_text:
-            print(f"   🔍 REDIRECT CHECK: Response preview: {response_text[:100]}...")
+            print(f"   🔍 REDIRECT CHECK: Response preview: {response_text[:200]}...")
         else:
             print(f"   ⚠️ REDIRECT CHECK: No response text found!")
             return "complete"  # No conversation data, complete normally
 
-        # If response text is raw conversation, analyze it first
-        if response_text and not ("REDIRECT_REQUESTED:" in response_text):
-            print(f"   🔍 REDIRECT CHECK: Raw conversation detected, analyzing with AI...")
+        # 🆕 ENHANCED: Check if redirect markers already exist (processed by vocal assistant)
+        if "REDIRECT_REQUESTED:" in response_text:
+            print(f"   🔍 REDIRECT CHECK: Structured redirect markers found!")
+            print(f"   🔍 REDIRECT CHECK: Using pre-processed redirect data...")
             
-            # Get vocal assistant agent for conversation analysis
-            vocal_agent = None
-            if hasattr(self, 'agents') and 'vocal_assistant' in self.agents:
-                vocal_agent = self.agents['vocal_assistant']
-            
-            if vocal_agent and hasattr(vocal_agent, '_analyze_conversation_for_redirect'):
-                try:
-                    analyzed_result = vocal_agent._analyze_conversation_for_redirect(response_text)
-                    if analyzed_result and analyzed_result.get('redirect_requested') is not None:
-                        print(f"   ✅ REDIRECT CHECK: AI analysis completed successfully")
-                        # Use the analyzed result directly instead of parsing again
-                        vocal_response = type('VocalResponse', (), {
-                            'redirect_requested': analyzed_result.get('redirect_requested', False),
-                            'redirect_employee_info': analyzed_result.get('redirect_employee_info', {}),
-                            'conversation_complete': not analyzed_result.get('redirect_requested', False)
-                        })()
-                        
-                        print(f"   🔍 REDIRECT CHECK: Redirect requested: {vocal_response.redirect_requested}")
-                    else:
-                        print(f"   ⚠️ REDIRECT CHECK: AI analysis returned invalid result")
-                        return "complete"
-                except Exception as e:
-                    print(f"   ⚠️ REDIRECT CHECK: AI analysis error: {e}")
+            # Extract structured redirect information
+            if "REDIRECT_REQUESTED: True" in response_text:
+                print(f"   ✅ REDIRECT CHECK: Pre-processed redirect confirmed!")
+                
+                # Extract redirect info from structured text
+                redirect_info = self._extract_structured_redirect_info(response_text)
+                print(f"   ✅ REDIRECT CHECK: Extracted redirect info: {redirect_info}")
+                
+                state["results"]["redirect_info"] = redirect_info
+                return "redirect"
             else:
-                print(f"   ⚠️ REDIRECT CHECK: No vocal agent available for AI analysis")
+                print(f"   ❌ REDIRECT CHECK: Pre-processed redirect declined")
+                return "complete"
 
-        conversation_data_for_analysis = {"response": response_text}
-        print(f"   🔍 REDIRECT CHECK: Creating VocalResponse object...")
-        vocal_response = VocalResponse(conversation_data_for_analysis)
+        # 🆕 ENHANCED: If no structured markers, analyze raw conversation with vocal assistant
+        print(f"   🔍 REDIRECT CHECK: No structured markers - analyzing raw conversation...")
         
-        print(f"   🔍 REDIRECT CHECK: Redirect requested: {vocal_response.redirect_requested}")
-        print(f"   🔍 REDIRECT CHECK: Redirect info: {vocal_response.redirect_employee_info}")
-        print(f"   🔍 REDIRECT CHECK: Conversation complete: {vocal_response.conversation_complete}")
+        # Get vocal assistant agent for conversation analysis
+        vocal_agent = None
+        if hasattr(self, 'agents') and 'vocal_assistant' in self.agents:
+            vocal_agent = self.agents['vocal_assistant']
+            print(f"   🔍 REDIRECT CHECK: Found vocal assistant agent")
+        else:
+            print(f"   ⚠️ REDIRECT CHECK: No vocal assistant agent available")
         
-        if vocal_response.redirect_requested:
-            state["results"]["redirect_info"] = vocal_response.redirect_employee_info
-            print(f"   ✅ REDIRECT CHECK: REDIRECT DETECTED! Storing info and routing to redirect_detector")
-            print(f"   ✅ REDIRECT CHECK: Redirect info stored: {vocal_response.redirect_employee_info}")
-            return "redirect"
+        if vocal_agent and hasattr(vocal_agent, '_analyze_conversation_for_redirect'):
+            try:
+                print(f"   🔍 REDIRECT CHECK: Calling enhanced AI analysis...")
+                analyzed_result = vocal_agent._analyze_conversation_for_redirect(response_text)
+                print(f"   🔍 REDIRECT CHECK: AI analysis result: {analyzed_result}")
+                
+                if analyzed_result and analyzed_result.get('redirect_requested'):
+                    print(f"   ✅ REDIRECT CHECK: AI detected redirect!")
+                    redirect_info = analyzed_result.get('redirect_employee_info', {})
+                    state["results"]["redirect_info"] = redirect_info
+                    print(f"   ✅ REDIRECT CHECK: Stored redirect info: {redirect_info}")
+                    return "redirect"
+                else:
+                    print(f"   ❌ REDIRECT CHECK: AI analysis found no redirect")
+                    return "complete"
+                    
+            except Exception as e:
+                print(f"   ⚠️ REDIRECT CHECK: AI analysis error: {e}")
+                import traceback
+                print(f"   ⚠️ REDIRECT CHECK: Full traceback: {traceback.format_exc()}")
+        else:
+            print(f"   ⚠️ REDIRECT CHECK: Vocal agent method not available")
+
+        # 🆕 ENHANCED: Fallback to old VocalResponse parsing (legacy compatibility)
+        print(f"   🔍 REDIRECT CHECK: Trying legacy VocalResponse parsing...")
+        try:
+            conversation_data_for_analysis = {"response": response_text}
+            vocal_response = VocalResponse(conversation_data_for_analysis)
+            
+            print(f"   🔍 REDIRECT CHECK: Legacy - Redirect requested: {vocal_response.redirect_requested}")
+            print(f"   🔍 REDIRECT CHECK: Legacy - Redirect info: {vocal_response.redirect_employee_info}")
+            
+            if vocal_response.redirect_requested:
+                state["results"]["redirect_info"] = vocal_response.redirect_employee_info
+                print(f"   ✅ REDIRECT CHECK: Legacy method detected redirect!")
+                return "redirect"
+        except Exception as e:
+            print(f"   ⚠️ REDIRECT CHECK: Legacy parsing error: {e}")
         
-        print(f"   ✅ REDIRECT CHECK: No redirect requested, marking complete")
+        print(f"   ❌ REDIRECT CHECK: All methods failed - no redirect detected")
         return "complete"
+
+    def _extract_structured_redirect_info(self, response_text: str) -> Dict[str, Any]:
+        """Extract redirect information from structured response text."""
+        redirect_info = {}
+        
+        try:
+            lines = response_text.split('\n')
+            for line in lines:
+                line = line.strip()
+                if line.startswith("USERNAME_TO_REDIRECT:"):
+                    username = line.split(":", 1)[1].strip()
+                    if username != "NONE":
+                        redirect_info["username"] = username
+                elif line.startswith("ROLE_OF_THE_REDIRECT_TO:"):
+                    role = line.split(":", 1)[1].strip()
+                    if role != "NONE":
+                        redirect_info["role"] = role
+                elif line.startswith("RESPONSIBILITIES:"):
+                    responsibilities = line.split(":", 1)[1].strip()
+                    if responsibilities != "NONE":
+                        redirect_info["responsibilities"] = responsibilities
+                        
+            print(f"   🔍 _extract_structured_redirect_info: Extracted: {redirect_info}")
+            return redirect_info
+            
+        except Exception as e:
+            print(f"   ⚠️ _extract_structured_redirect_info: Error: {e}")
+            return {}

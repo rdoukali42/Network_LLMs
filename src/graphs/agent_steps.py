@@ -7,8 +7,16 @@ from .workflow_state import WorkflowState
 
 # Import front modules for ticket management and notifications
 try:
-    from front.tickets.ticket_manager import TicketManager
-    from front.database import DatabaseManager
+    import sys
+    import os
+    # Add front directory to path
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    front_dir = os.path.join(current_dir, '..', '..', 'front')
+    if front_dir not in sys.path:
+        sys.path.insert(0, front_dir)
+    
+    from tickets.ticket_manager import TicketManager
+    from database import DatabaseManager
     FRONT_MODULES_AVAILABLE = True
 except ImportError as e:
     print(f"⚠️ AGENT_STEPS: Could not import front modules: {e}")
@@ -43,7 +51,7 @@ class AgentSteps:
             })
             state["results"]["maestro_preprocess"] = maestro_result.get("result", "Query processed")
         else:
-            state["results"]["maestro_preprocess"] = query  # Fallback
+            raise RuntimeError("Maestro agent not available - workflow cannot proceed")
         
         return state
     
@@ -91,9 +99,7 @@ class AgentSteps:
             state["results"]["synthesis"] = synthesis_result.get("result", "Response generated")
             state["results"]["synthesis_status"] = synthesis_result.get("status", "success")
         else:
-            # Fallback synthesis
-            state["results"]["synthesis"] = f"Based on available information: {data_guardian_result}"
-            state["results"]["synthesis_status"] = "success"
+            raise RuntimeError("Maestro agent not available for synthesis - workflow cannot proceed")
         
         return state
     
@@ -114,9 +120,9 @@ class AgentSteps:
         query = state.get("query", "")
         
         # Run HR Agent (AvailabilityTool will automatically filter current user)
-        if "hr_agent" in self.agents:
+        if "hr" in self.agents:
             print("     🤖 Starting HR Agent - Employee matching in progress.../n")
-            hr_result = self.agents["hr_agent"].run({"query": query})
+            hr_result = self.agents["hr"].run({"query": query})
             
             # Handle new Pydantic response format - status is a StatusEnum object
             status = hr_result.get("status")
@@ -186,7 +192,10 @@ class AgentSteps:
         print(f"     📞 VOCAL ASSISTANT STEP: HR action: {hr_action}")
         print(f"     📞 VOCAL ASSISTANT STEP: Employee assigned: {'Yes' if employee_data else 'No'}")
         if employee_data:
-            print(f"     📞 VOCAL ASSISTANT STEP: Employee: {employee_data.get('full_name', 'Unknown')} ({employee_data.get('username', 'No username')})")
+            # Handle both 'full_name' and 'name' fields from different agent responses
+            employee_name = employee_data.get('full_name') or employee_data.get('name', 'Unknown')
+            employee_username = employee_data.get('username', 'No username')
+            print(f"     📞 VOCAL ASSISTANT STEP: Employee: {employee_name} ({employee_username})")
         
         if hr_action == "assign" and employee_data:
             # Check if this is a redirect scenario
@@ -258,23 +267,33 @@ class AgentSteps:
                     print(f"     📋 VOCAL ASSISTANT STEP: Call initiated - processing assignment and notification...")
                     
                     # 1. Assign ticket to employee (if we have a real ticket ID)
-                    real_ticket_id = state["metadata"].get("ticket_id") or ticket_data.get("real_id")
+                    real_ticket_id = (state["metadata"].get("ticket_id") or 
+                                     state.get("metadata", {}).get("original_ticket_id") or
+                                     state.get("input_data", {}).get("original_ticket_id") or
+                                     ticket_data.get("real_id"))
                     employee_username = employee_data.get("username")
                     call_info = vocal_result.get("call_info", {})
                     call_ticket_id = call_info.get("ticket_id")
                     
+                    print(f"     📋 VOCAL ASSISTANT STEP: Looking for ticket ID...")
+                    print(f"     📋 VOCAL ASSISTANT STEP: metadata.ticket_id={state['metadata'].get('ticket_id')}")
+                    print(f"     📋 VOCAL ASSISTANT STEP: metadata.original_ticket_id={state.get('metadata', {}).get('original_ticket_id')}")
+                    print(f"     📋 VOCAL ASSISTANT STEP: input_data.original_ticket_id={state.get('input_data', {}).get('original_ticket_id')}")
+                    print(f"     📋 VOCAL ASSISTANT STEP: final real_ticket_id={real_ticket_id}")
+                    
                     if real_ticket_id and employee_username:
                         if FRONT_MODULES_AVAILABLE:
                             try:
-                                db_manager = DatabaseManager()
-                                db_manager.assign_ticket_to_employee(real_ticket_id, employee_username)
+                                ticket_manager = TicketManager()
+                                ticket_manager.assign_ticket(real_ticket_id, employee_username)
                                 print(f"     ✅ VOCAL ASSISTANT STEP: Ticket {real_ticket_id} assigned to {employee_username}")
                             except Exception as e:
                                 print(f"     ⚠️ VOCAL ASSISTANT STEP: Failed to assign ticket: {e}")
                         else:
-                            print(f"     ⚠️ VOCAL ASSISTANT STEP: Database modules not available for ticket assignment")
+                            print(f"     ⚠️ VOCAL ASSISTANT STEP: Front modules not available for ticket assignment")
                     else:
                         print(f"     ⚠️ VOCAL ASSISTANT STEP: Missing ticket ID or employee username for assignment")
+                        print(f"     📋 VOCAL ASSISTANT STEP: real_ticket_id={real_ticket_id}, employee_username={employee_username}")
                     
                     # 2. Create call notification for employee
                     try:
@@ -345,7 +364,7 @@ class AgentSteps:
                     synthesis_input = {
                         "query": query,
                         "stage": "synthesize",
-                        "data_guardian_result": f"SCOPE_STATUS: IN_SCOPE\nINFORMATION_FOUND: YES\n\nRedirect Conversation Summary:\n{raw_conversation}\n\nThe above represents a completed conversation between the user and a redirected expert ({redirect_call_result.get('employee_name', 'redirected employee')}). Please synthesize this into a clean, professional support response."
+                        "data_guardian_result": f"SCOPE_STATUS: IN_SCOPE\nINFORMATION_FOUND: YES\n\nRedirect Conversation Summary:\n{raw_conversation}\n\nThe above represents a completed conversation between the user and a redirected expert ({redirect_call_result.get('employee_name', 'redirected employee')}). Please synthesize this into a brief, professional email-style response using this exact format:\n\nSubject: Re: [TICKET SUBJECT]\n\nHi [USER NAME],\n\nThanks for your request. [Brief summary of what was discussed and the solution provided by the expert]. {redirect_call_result.get('employee_name', 'Our expert')} handled your [issue type] and provided [key solution points].\n\n{redirect_call_result.get('employee_name', 'The expert')} will [next steps if any] or you can contact them directly for follow-up.\n\nThis solution was coordinated by Anna, our Support Specialist.\n\nBest,\nSupport Team\n\nKeep the response under 150 words and focus on the actual solution, not internal processes."
                     }
                     synthesis_result = maestro_agent.run(synthesis_input)
                     if synthesis_result.get("status") == "success":
@@ -357,16 +376,9 @@ class AgentSteps:
                     raise Exception("MaestroAgent not available")
                     
             except Exception as e:
-                print(f"     ⚠️ MAESTRO FINAL: Redirect synthesis failed ({e}), using fallback template")
-                # Fallback to template if synthesis fails
-                final_response = f"""Your ticket has been successfully redirected and resolved.
-
-{hr_result}
-
-Solution provided by the assigned expert:
-{raw_conversation}
-
-Your issue has been handled by the most appropriate team member."""
+                print(f"     ❌ MAESTRO FINAL: Redirect synthesis failed ({e})")
+                # No fallback - re-raise the error
+                raise RuntimeError(f"Final maestro synthesis failed: {e}") from e
             print(f"     ✅ MAESTRO FINAL: Redirect solution formatted")
         elif vocal_action == "start_call" and call_info:
             print(f"     🎯 MAESTRO FINAL: Processing initial call initiation...")
@@ -390,7 +402,7 @@ A voice call is being initiated to discuss your issue in detail and provide a pe
                         synthesis_input = {
                             "query": query,
                             "stage": "synthesize",
-                            "data_guardian_result": f"SCOPE_STATUS: IN_SCOPE\nINFORMATION_FOUND: YES\n\nCall Conversation Summary:\n{conversation_summary}\n\nThe above represents a completed voice conversation with our expert. Please synthesize this into a clean, professional support response."
+                            "data_guardian_result": f"SCOPE_STATUS: IN_SCOPE\nINFORMATION_FOUND: YES\n\nCall Conversation Summary:\n{conversation_summary}\n\nThe above represents a completed voice conversation with our expert. Please synthesize this into a brief, professional email-style response using this exact format:\n\nSubject: Re: [TICKET SUBJECT]\n\nHi [USER NAME],\n\nThanks for your request. [Brief summary of what was discussed and the solution provided by the expert]. [Employee name] handled your [issue type] and provided [key solution points].\n\n[Employee name] will [next steps if any] or you can contact them directly for follow-up.\n\nThis solution was coordinated by Anna, our Support Specialist.\n\nBest,\nSupport Team\n\nKeep the response under 150 words and focus on the actual solution, not internal processes."
                         }
                         synthesis_result = maestro_agent.run(synthesis_input)
                         if synthesis_result.get("status") == "success":
@@ -402,16 +414,9 @@ A voice call is being initiated to discuss your issue in detail and provide a pe
                         raise Exception("MaestroAgent not available")
                         
                 except Exception as e:
-                    print(f"     ⚠️ MAESTRO FINAL: Synthesis failed ({e}), using fallback template")
-                    # Fallback to template if synthesis fails
-                    final_response = f"""Your ticket has been resolved through a voice conversation.
-
-{hr_result}
-
-Solution details:
-{conversation_summary}
-
-Your issue has been addressed by our expert team member."""
+                    print(f"     ❌ MAESTRO FINAL: Synthesis failed ({e})")
+                    # No fallback - re-raise the error  
+                    raise RuntimeError(f"Maestro synthesis failed: {e}") from e
             else:
                 final_response = f"""Your ticket has been processed through a voice conversation.
 

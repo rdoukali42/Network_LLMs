@@ -1,6 +1,6 @@
 """
 AI ticket processing workflow module.
-Handles AI-powered ticket analysis and assignment logic.
+Handles AI-powered ticket analysis and assignment logic via the service layer.
 """
 
 import streamlit as st
@@ -8,15 +8,55 @@ from database import db_manager
 
 
 def process_ticket_with_ai(ticket_id: str, subject: str, description: str):
-    """Process ticket with AI workflow."""
+    """Process ticket with AI workflow via service layer."""
     try:
-        # Combine subject and description for AI processing
-        query = f"  🎫 Support Ticket: {subject}\n  📝 Ticket-Query: {description}\n"
+        # Get service integration instance
+        service_integration = st.session_state.get("service_integration")
+        if not service_integration:
+            from service_integration import ServiceIntegration
+            service_integration = ServiceIntegration()
+            st.session_state.service_integration = service_integration
         
-        # Process with AI workflow
+        # Combine subject and description for AI processing
+        query = f"🎫 Support Ticket: {subject}\n📝 Ticket-Query: {description}\n"
+        
+        # Determine appropriate workflow type based on ticket content
+        content = f"{subject} {description}".lower()
+        hr_keywords = ['vacation', 'time off', 'leave', 'pto', 'sick', 'holiday', 'hr', 'human resources', 'payroll', 'benefits', 'policy']
+        
+        # Check if this is likely an HR request
+        is_hr_request = any(keyword in content for keyword in hr_keywords)
+        
+        # Process with appropriate AI workflow via service layer
         with st.spinner(f"Processing ticket {ticket_id} with AI..."):
-            # Simple query processing - AvailabilityTool will automatically filter current user
-            result = st.session_state.workflow_client.process_message(query)
+            if is_hr_request:
+                # Use HR workflow for HR-related requests
+                try:
+                    workflow_service = service_integration.service_manager.get_service('workflow')
+                    # Import WorkflowType properly
+                    import sys
+                    sys.path.append('..')
+                    sys.path.append('../src')
+                    from services.workflow_service import WorkflowType
+                    workflow_id = workflow_service.start_workflow(
+                        workflow_type=WorkflowType.HR_REQUEST,
+                        username=st.session_state.get('username', 'anonymous'),
+                        input_data={"query": query, "original_ticket_id": ticket_id},
+                        ticket_id=ticket_id
+                    )
+                    # Get the result
+                    workflow_status = workflow_service.get_workflow_status(workflow_id)
+                    result = {
+                        "workflow_result": workflow_status.get("output_data", {}) if workflow_status else {},
+                        "result": workflow_status.get("output_data", {}).get("response", "HR request processed") if workflow_status else "HR request processed"
+                    }
+                except Exception as e:
+                    # Fallback to general workflow if HR workflow fails
+                    print(f"HR workflow failed, using fallback: {e}")
+                    result = service_integration.process_workflow_query(query)
+            else:
+                # Use general query answering workflow
+                result = service_integration.process_workflow_query(query, ticket_id=ticket_id)
             
             # Extract AI response from different possible formats
             response = None

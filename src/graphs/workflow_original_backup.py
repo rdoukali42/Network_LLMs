@@ -13,7 +13,7 @@ from datetime import datetime
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 
 # Import redirect functionality
-from src.agents.vocal_assistant import VocalResponse
+from agents.vocal_assistant import VocalResponse
 
 # Import front modules for ticket management and notifications
 try:
