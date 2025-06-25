@@ -425,3 +425,13 @@ class ServiceIntegration:
             return self.service_manager.is_healthy()
         except Exception:
             return False
+    
+    @property
+    def multi_agent_workflow(self):
+        """Get the multi-agent workflow instance for call completion and complex flows."""
+        try:
+            workflow_service = self.service_manager.get_workflow_service()
+            return workflow_service.multi_agent_workflow
+        except Exception as e:
+            print(f"❌ ERROR: Failed to get multi_agent_workflow: {e}")
+            return None

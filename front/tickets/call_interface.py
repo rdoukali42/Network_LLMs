@@ -269,68 +269,41 @@ def generate_solution_from_call():
                     # Use the captured service integration (no session state access needed)
                     print(f"🔄 END_CALL: Using captured service integration: {type(service_integration)}")
                     
-                    # Create a solution-focused query to ensure proper workflow routing
-                    conversation_query = f"""CALL COMPLETION - GENERATE SOLUTION
-
-Call completed with employee: {employee_data.get('full_name', 'Unknown Employee')}
-Employee role: {employee_data.get('role_in_company', 'Technical Expert')}
-Ticket ID: {ticket_data.get('id')}
-Ticket subject: {ticket_data.get('subject', 'Support Request')}
-
-CONVERSATION TRANSCRIPT:
-{conversation_summary}
-
-TASK: Analyze this completed voice call conversation and generate a brief, professional email-style solution for the ticket using this format:
-
-Subject: Re: {ticket_data.get('subject', 'Your Request')}
-
-Hi {ticket_data.get('user', 'there')},
-
-Thanks for your request. [Brief summary of what was discussed during the call and the solution provided]. {employee_data.get('full_name', 'Our expert')} handled your {ticket_data.get('category', 'issue')} and provided [key solution points from the conversation].
-
-[Any next steps or follow-up actions mentioned] or you can contact {employee_data.get('full_name', 'them')} directly for further assistance.
-
-This solution was coordinated by Anna, our Support Specialist.
-
-Best,
-Support Team
-
-IMPORTANT: 
-- Keep the response under 150 words total
-- Focus on the actual solution from the conversation, not internal processes
-- Use professional email format as shown above
-- This is a CALL COMPLETION event requiring FINAL SOLUTION GENERATION through the maestro-final workflow stage
-- Extract key solution points from the conversation transcript above"""
+                    # 🔧 FIXED: Use END_CALL workflow instead of regular query processing
+                    print(f"🔄 END_CALL: 🔧 USING CALL COMPLETION WORKFLOW (not regular query)")
+                    
+                    # Create END_CALL state for proper call completion processing
+                    end_call_state = {
+                        "results": {
+                            "vocal_assistant": {
+                                "action": "end_call",
+                                "status": "call_completed", 
+                                "conversation_summary": conversation_summary,
+                                "conversation_data": {
+                                    "conversation_summary": conversation_summary,
+                                    "response": conversation_summary
+                                }
+                            },
+                            "ticket_data": ticket_data,
+                            "employee_data": employee_data
+                        },
+                        "messages": [{"content": conversation_summary, "type": "user"}],
+                        "metadata": {
+                            "ticket_id": ticket_data.get('id'),
+                            "employee_username": employee_data.get('username')
+                        }
+                    }
+                    
+                    print(f"🔄 END_CALL: 🔧 FIXED: Using process_end_call() method for proper routing")
+                    print(f"🔄 END_CALL: 🔧 FIXED: END_CALL state prepared with conversation data")
                     
                     try:
-                        # Use the service integration to process the end-of-call workflow
-                        print("🔄 END_CALL: Processing conversation through service integration...")
-                        print(f"🔄 END_CALL: === CONVERSATION QUERY DEBUG ===")
-                        print(f"🔄 END_CALL: Query length: {len(conversation_query)}")
-                        print(f"🔄 END_CALL: Query preview: {conversation_query[:300]}...")
-                        print(f"🔄 END_CALL: Username: {employee_data.get('username')}")
-                        print(f"🔄 END_CALL: Ticket ID: {ticket_data.get('id')}")
-                        print(f"🔄 END_CALL: === END DEBUG ===")
+                        # Use the multi-agent workflow's process_end_call method
+                        workflow = service_integration.multi_agent_workflow
+                        result = workflow.process_end_call(end_call_state)
                         
-                        result = service_integration.process_workflow_query(
-                            query=conversation_query,
-                            username=employee_data.get('username'),
-                            ticket_id=ticket_data.get('id')
-                        )
-                        
-                        print(f"🔄 END_CALL: Service integration result: {result}")
-                        print(f"🔄 END_CALL: Full result structure debug:")
-                        print(f"🔄 END_CALL: Result type: {type(result)}")
-                        if isinstance(result, dict):
-                            print(f"🔄 END_CALL: Top-level keys: {list(result.keys())}")
-                            for key, value in result.items():
-                                print(f"🔄 END_CALL: Key '{key}': type={type(value)}, value={str(value)[:100]}...")
-                                if isinstance(value, dict) and key == 'results':
-                                    print(f"🔄 END_CALL: Results sub-keys: {list(value.keys())}")
-                                    for sub_key, sub_value in value.items():
-                                        print(f"🔄 END_CALL: Results.{sub_key}: type={type(sub_value)}, value={str(sub_value)[:100]}...")
-                        else:
-                            print(f"🔄 END_CALL: Non-dict result: {str(result)[:200]}...")
+                        print(f"🔄 END_CALL: 🔧 FIXED: process_end_call() completed successfully")
+                        print(f"🔄 END_CALL: Result: {result}")
                         
                         execution_time = time.time() - start_time
                         print(f"🔄 END_CALL: Workflow completed in {execution_time:.2f} seconds")
@@ -338,7 +311,7 @@ IMPORTANT:
                         return result
                         
                     except Exception as e:
-                        print(f"❌ END_CALL: Service integration processing failed: {e}")
+                        print(f"❌ END_CALL: 🔧 process_end_call() failed: {e}")
                         execution_time = time.time() - start_time
                         print(f"🔄 END_CALL: Failed after {execution_time:.2f} seconds")
                         return {

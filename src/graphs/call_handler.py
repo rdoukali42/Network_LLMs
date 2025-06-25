@@ -62,8 +62,9 @@ class CallHandler:
                 print(f"     📞 CALL COMPLETION HANDLER: Stored conversation data for redirect analysis")
             
         elif call_action == "start_call" or call_status == "call_initiated":
-            print(f"     📞 CALL COMPLETION HANDLER: Call initiated - waiting for completion...")
-            # Call was just started, not completed yet - workflow should complete here
+            print(f"     📞 CALL COMPLETION HANDLER: 🔧 FIXED: Call initiated - NOT COMPLETED")
+            print(f"     📞 CALL COMPLETION HANDLER: 🔧 FIXED: Workflow will stop here to prevent premature ticket completion")
+            # Call was just started, not completed yet - workflow should stop here
             state["results"]["call_completed"] = False
             # Set vocal_action for maestro_final
             state["results"]["vocal_action"] = "start_call"
@@ -77,7 +78,7 @@ class CallHandler:
         return state
     
     def check_call_completion(self, state: WorkflowState) -> str:
-        """Conditional routing based on call completion status."""
+        """🔧 FIXED: Conditional routing based on call completion status."""
         call_completed = state["results"].get("call_completed", False)
         
         print(f"   🔍 CALL ROUTING: Call completed: {call_completed}")
@@ -86,8 +87,8 @@ class CallHandler:
             print(f"   🔍 CALL ROUTING: Call ended - checking for redirect...")
             return self.check_for_redirect(state)
         else:
-            print(f"   🔍 CALL ROUTING: Call ongoing or just initiated - completing workflow...")
-            return "complete"
+            print(f"   🔍 CALL ROUTING: 🔧 FIXED: Call just initiated - stopping workflow (no premature completion)...")
+            return "call_waiting"
     
     def check_for_redirect(self, state: WorkflowState) -> str:
         """🆕 ENHANCED: Check if vocal assistant conversation indicates redirect needed."""
@@ -118,11 +119,92 @@ class CallHandler:
         print(f"   🔍 REDIRECT CHECK: Final response text length: {len(response_text) if response_text else 0}")
         if response_text:
             print(f"   🔍 REDIRECT CHECK: Response preview: {response_text[:200]}...")
+            print(f"   🔍 REDIRECT CHECK: 🔧 DEBUG: Looking for redirect keywords in conversation...")
+            
+            # Quick keyword check for debugging
+            redirect_keywords = ["redirect", "transfer", "forward", "sarah", "another person", "someone else"]
+            found_keywords = [kw for kw in redirect_keywords if kw.lower() in response_text.lower()]
+            print(f"   🔍 REDIRECT CHECK: 🔧 DEBUG: Found redirect keywords: {found_keywords}")
         else:
             print(f"   ⚠️ REDIRECT CHECK: No response text found!")
             return "complete"  # No conversation data, complete normally
 
-        # 🆕 ENHANCED: Check if redirect markers already exist (processed by vocal assistant)
+        # 🆕 ENHANCED: Apply AI analysis to response_text (same as vocal assistant)
+        print(f"   🔍 REDIRECT CHECK: Applying AI analysis to response text...")
+        
+        # Get vocal assistant agent for AI analysis
+        vocal_agent = None
+        if hasattr(self, 'agents') and 'vocal_assistant' in self.agents:
+            vocal_agent = self.agents['vocal_assistant']
+            print(f"   🔍 REDIRECT CHECK: Found vocal assistant agent for AI analysis")
+        
+        if vocal_agent and hasattr(vocal_agent, 'gemini'):
+            try:
+                print(f"   🤖 REDIRECT CHECK: Generating AI-structured response from raw conversation...")
+                
+                analysis_prompt = f"""
+Analyze this voice call conversation to detect if there was a redirect request.
+
+CONVERSATION:
+{response_text}
+
+Look for patterns where:
+1. Someone says they want to redirect, forward, transfer the call/ticket
+2. Someone mentions another person's name to redirect to
+3. Someone says another person would be better suited to handle this
+
+If a redirect is requested, extract:
+- The name/username of the person to redirect to
+- Any role or department mentioned
+- The reason for redirect
+
+RESPOND IN THIS EXACT FORMAT:
+REDIRECT_REQUESTED: [True/False]
+USERNAME_TO_REDIRECT: [name or NONE]
+ROLE_OF_THE_REDIRECT_TO: [role/department or NONE]
+RESPONSIBILITIES: [reason for redirect or NONE]
+
+EXAMPLES:
+- "redirect the call to Sarah" → REDIRECT_REQUESTED: True, USERNAME_TO_REDIRECT: sarah
+- "forward to DevOps team" → REDIRECT_REQUESTED: True, ROLE_OF_THE_REDIRECT_TO: DevOps
+- "John would be better for this" → REDIRECT_REQUESTED: True, USERNAME_TO_REDIRECT: john
+
+Be precise and only extract what is clearly mentioned.
+Only return REDIRECT_REQUESTED: True if there is an explicit redirect request in the conversation.
+"""
+                
+                # Use Gemini to analyze and generate structured response
+                ai_structured_response = vocal_agent.gemini.chat(
+                    analysis_prompt,
+                    {},  # No ticket data needed for analysis
+                    {},  # No employee data needed for analysis
+                    is_employee=False
+                )
+                
+                print(f"   🤖 REDIRECT CHECK: AI generated structured response ({len(ai_structured_response)} chars)")
+                print(f"   🤖 REDIRECT CHECK: AI response preview: {ai_structured_response[:200]}...")
+                
+                # Now check if AI found redirect markers
+                if "REDIRECT_REQUESTED: True" in ai_structured_response:
+                    print(f"   ✅ REDIRECT CHECK: AI confirmed redirect request!")
+                    
+                    # Extract redirect info from AI-structured text
+                    redirect_info = self._extract_structured_redirect_info(ai_structured_response)
+                    print(f"   ✅ REDIRECT CHECK: Extracted redirect info: {redirect_info}")
+                    
+                    state["results"]["redirect_info"] = redirect_info
+                    return "redirect"
+                else:
+                    print(f"   ❌ REDIRECT CHECK: AI analysis found no redirect")
+                    return "complete"
+                    
+            except Exception as e:
+                print(f"   ⚠️ REDIRECT CHECK: AI analysis failed: {e}")
+                # Fall through to legacy methods
+        else:
+            print(f"   ⚠️ REDIRECT CHECK: Vocal assistant AI not available for analysis")
+        
+        # 🆕 FALLBACK: Check if redirect markers already exist (pre-processed)
         if "REDIRECT_REQUESTED:" in response_text:
             print(f"   🔍 REDIRECT CHECK: Structured redirect markers found!")
             print(f"   🔍 REDIRECT CHECK: Using pre-processed redirect data...")
@@ -143,6 +225,7 @@ class CallHandler:
 
         # 🆕 ENHANCED: If no structured markers, analyze raw conversation with vocal assistant
         print(f"   🔍 REDIRECT CHECK: No structured markers - analyzing raw conversation...")
+        print(f"   🔍 REDIRECT CHECK: 🔧 DEBUG: Available agents: {list(self.agents.keys()) if hasattr(self, 'agents') and self.agents else 'None'}")
         
         # Get vocal assistant agent for conversation analysis
         vocal_agent = None
@@ -151,6 +234,15 @@ class CallHandler:
             print(f"   🔍 REDIRECT CHECK: Found vocal assistant agent")
         else:
             print(f"   ⚠️ REDIRECT CHECK: No vocal assistant agent available")
+            print(f"   🔍 REDIRECT CHECK: 🔧 DEBUG: Trying alternative agent access methods...")
+            
+            # Try alternative ways to get the vocal assistant
+            if hasattr(self, 'agents'):
+                for agent_name, agent in self.agents.items():
+                    if 'vocal' in agent_name.lower() or hasattr(agent, '_analyze_conversation_for_redirect'):
+                        vocal_agent = agent
+                        print(f"   🔍 REDIRECT CHECK: Found alternative vocal agent: {agent_name}")
+                        break
         
         if vocal_agent and hasattr(vocal_agent, '_analyze_conversation_for_redirect'):
             try:

@@ -63,13 +63,19 @@ class MultiAgentWorkflow:
         # Route through call completion handler
         workflow.add_edge("vocal_assistant", "call_completion_handler")
         
-        # NEW CONDITIONAL EDGE: Check call completion status
+        # 🔧 FIXED: Check call completion status with proper routing
+        # - "call_waiting": Call just initiated → END (prevents premature ticket completion)
+        # - "complete": Call completed normally → maestro_final 
+        # - "redirect": Call completed with redirect → redirect_detector
+        
+        # 🔧 FIXED: Check call completion status with proper routing
         workflow.add_conditional_edges(
             "call_completion_handler",
             self.call_handler.check_call_completion,
             {
                 "redirect": "redirect_detector",
-                "complete": "maestro_final"
+                "complete": "maestro_final",
+                "call_waiting": END  # 🔧 NEW: Stop workflow when call is just initiated
             }
         )
         
@@ -129,16 +135,41 @@ class MultiAgentWorkflow:
         print(f"🔄 END_CALL: Input state keys: {list(end_call_state.keys())}")
         
         try:
+            # Extract conversation data from messages
+            messages = end_call_state.get("messages", [])
+            conversation_content = ""
+            if messages and len(messages) > 0:
+                conversation_content = messages[0].get("content", "")
+            
+            print(f"🔄 END_CALL: Extracted conversation content (length: {len(conversation_content)})")
+            
             # Convert input to proper WorkflowState format
             state: WorkflowState = {
-                "messages": end_call_state.get("messages", []),
+                "messages": messages,
                 "current_step": "call_completion_handler",
-                "results": end_call_state.get("results", {}),
+                "results": {
+                    # Set up vocal assistant result with conversation data for redirect analysis
+                    "vocal_assistant": {
+                        "action": "end_call",
+                        "status": "call_completed",
+                        "conversation_summary": conversation_content,
+                        "conversation_data": {
+                            "conversation_summary": conversation_content,
+                            "response": conversation_content
+                        }
+                    }
+                },
                 "metadata": end_call_state.get("metadata", {}),
-                "query": ""  # Empty query for END_CALL processing
+                "query": conversation_content  # Use conversation as query for processing
             }
             
             print(f"🔄 END_CALL: Starting call completion handler...")
+            
+            # 🔧 DEBUG: Check if vocal assistant result has the right format
+            vocal_result = state["results"].get("vocal_assistant", {})
+            print(f"🔄 END_CALL: 🔧 DEBUG: Vocal result keys: {list(vocal_result.keys()) if vocal_result else 'None'}")
+            print(f"🔄 END_CALL: 🔧 DEBUG: Call action: {vocal_result.get('action', 'None')}")
+            print(f"🔄 END_CALL: 🔧 DEBUG: Call status: {vocal_result.get('status', 'None')}")
             
             # Step 1: Process call completion
             state = self.call_handler.call_completion_handler_step(state)

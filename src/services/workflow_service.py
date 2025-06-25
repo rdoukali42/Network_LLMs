@@ -14,6 +14,7 @@ from data.models.user import User
 from utils.exceptions import ValidationError, BusinessLogicError, WorkflowError
 from config.prompts import get_workflow_prompt, get_system_prompt
 from graphs.workflow_core import MultiAgentWorkflow
+from tools.employee_search_tool import EmployeeSearchTool
 import uuid
 import asyncio
 
@@ -612,7 +613,17 @@ class WorkflowService(BaseService):
                     # Fail fast if any required agent is missing
                     raise WorkflowError(f"Required agent '{agent_name}' could not be created or retrieved")
             
-            self.logger.info(f"Created agents dict with all {len(agents_dict)} required agents: {list(agents_dict.keys())}")
+            # Add employee search tool for redirect functionality
+            try:
+                employee_search_tool = EmployeeSearchTool()
+                agents_dict["employee_search_tool"] = employee_search_tool
+                self.logger.debug("Added employee_search_tool to workflow agents dict")
+            except Exception as e:
+                self.logger.warning(f"Failed to create employee_search_tool: {str(e)}")
+                # Don't fail workflow creation, but log the issue
+                pass
+
+            self.logger.info(f"Created agents dict with {len(agents_dict)} agents: {list(agents_dict.keys())}")
             return agents_dict
             
         except Exception as e:

@@ -381,15 +381,68 @@ class VocalAssistantAgent(BaseAgent):
                 print(f"   📞 Call duration: {call_duration}")
                 
                 # Prepare the conversation analysis
+                raw_conversation = ""
                 if conversation_summary:
                     # Use provided summary
-                    final_conversation = conversation_summary
+                    raw_conversation = conversation_summary
                 elif conversation_data:
                     # Extract from conversation data
-                    final_conversation = conversation_data.get("summary", conversation_data.get("response", ""))
+                    raw_conversation = conversation_data.get("summary", conversation_data.get("response", ""))
                 else:
                     # No conversation data available
-                    final_conversation = "Call completed without conversation data"
+                    raw_conversation = "Call completed without conversation data"
+                
+                # 🆕 AI-POWERED ANALYSIS: Generate structured response using Gemini
+                if raw_conversation and len(raw_conversation.strip()) > 10:
+                    print(f"   🤖 AI ANALYSIS: Generating structured response from conversation...")
+                    
+                    analysis_prompt = f"""
+Analyze this voice call conversation to detect if there was a redirect request.
+
+CONVERSATION:
+{raw_conversation}
+
+Look for patterns where:
+1. Someone says they want to redirect, forward, transfer the call/ticket
+2. Someone mentions another person's name to redirect to
+3. Someone says another person would be better suited to handle this
+
+If a redirect is requested, extract:
+- The name/username of the person to redirect to
+- Any role or department mentioned
+- The reason for redirect
+
+RESPOND IN THIS EXACT FORMAT:
+REDIRECT_REQUESTED: [True/False]
+USERNAME_TO_REDIRECT: [name or NONE]
+ROLE_OF_THE_REDIRECT_TO: [role/department or NONE]
+RESPONSIBILITIES: [reason for redirect or NONE]
+
+EXAMPLES:
+- "redirect the call to Sarah" → REDIRECT_REQUESTED: True, USERNAME_TO_REDIRECT: sarah
+- "forward to DevOps team" → REDIRECT_REQUESTED: True, ROLE_OF_THE_REDIRECT_TO: DevOps
+- "John would be better for this" → REDIRECT_REQUESTED: True, USERNAME_TO_REDIRECT: john
+
+Be precise and only extract what is clearly mentioned.
+Only return REDIRECT_REQUESTED: True if there is an explicit redirect request in the conversation.
+"""
+                    
+                    try:
+                        # Use Gemini to analyze and generate structured response
+                        final_conversation = self.gemini.chat(
+                            analysis_prompt,
+                            {},  # No ticket data needed for analysis
+                            {},  # No employee data needed for analysis
+                            is_employee=False
+                        )
+                        print(f"   🤖 AI ANALYSIS: Generated structured response ({len(final_conversation)} chars)")
+                        print(f"   🤖 AI ANALYSIS: Preview: {final_conversation[:200]}...")
+                    except Exception as e:
+                        print(f"   ⚠️ AI ANALYSIS: Failed to generate structured response: {e}")
+                        final_conversation = raw_conversation
+                else:
+                    print(f"   ⚠️ ⚠️ ⚠️ ⚠️ AI ANALYSIS: No valid conversation content to analyze for redirects")
+                    final_conversation = raw_conversation
                 
                 print(f"   📞 DEBUG: Final conversation length: {len(final_conversation)}")
                 
@@ -738,6 +791,10 @@ Anna acts as a voice-enabled intermediary that connects human expertise with tic
     def _check_structured_headers(self, conversation: str) -> Dict[str, Any]:
         """Check for existing structured redirect headers in conversation."""
         try:
+            # DEBUG: Show what text is being parsed for headers
+            print(f"   🔍 Method 1 DEBUG: Conversation text being analyzed for headers:")
+            print(f"   🔍 Method 1 DEBUG: Full conversation ({len(conversation)} chars): {conversation}")
+            
             # Look for structured headers that might already exist
             if "REDIRECT_REQUESTED:" in conversation and "USERNAME_TO_REDIRECT:" in conversation:
                 print(f"   🔍 Structured headers found in conversation")
