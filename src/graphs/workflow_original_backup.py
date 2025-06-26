@@ -555,7 +555,18 @@ class MultiAgentWorkflow:
                     synthesis_input = {
                         "query": query,
                         "stage": "synthesize",
-                        "data_guardian_result": f"SCOPE_STATUS: IN_SCOPE\nINFORMATION_FOUND: YES\n\nRedirect Conversation Summary:\n{raw_conversation}\n\nThe above represents a completed conversation between the user and a redirected expert ({redirect_call_result.get('employee_name', 'redirected employee')}). Please synthesize this into a clean, professional support response."
+                        "data_guardian_result": f"""SCOPE_STATUS: IN_SCOPE
+INFORMATION_FOUND: YES
+
+Conversation Summary:
+{raw_conversation}
+
+Based on the above conversation, please generate a brief, professional response for the ticket. Clearly mention that the issue was resolved by {redirect_call_result.get('employee_name', 'the assigned expert')}. End the response with:
+
+Best regards,
+Support Agent
+"""
+                        # "data_guardian_result": f"SCOPE_STATUS: IN_SCOPE\nINFORMATION_FOUND: YES\n\nRedirect Conversation Summary:\n{raw_conversation}\n\nThe above represents a completed conversation between the user and a redirected expert ({redirect_call_result.get('employee_name', 'redirected employee')}). Please synthesize this into a clean, professional support response."
                     }
                     synthesis_result = maestro_agent.run(synthesis_input)
                     if synthesis_result.get("status") == "success":

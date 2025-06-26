@@ -142,9 +142,9 @@ class CallHandler:
             else:
                 print(f"   ⚠️ REDIRECT CHECK: No vocal agent available for AI analysis")
 
-        conversation_data_for_analysis = {"response": response_text}
-        print(f"   🔍 REDIRECT CHECK: Creating VocalResponse object...")
-        vocal_response = VocalResponse(conversation_data_for_analysis)
+        # conversation_data_for_analysis = {"response": response_text}
+        print(f"   🔍🔍🔍✅✅✅🔍🔍🔍 REDIRECT CHECK: Creating VocalResponse object...")
+        # vocal_response = VocalResponse(conversation_data_for_analysis)
         
         print(f"   🔍 REDIRECT CHECK: Redirect requested: {vocal_response.redirect_requested}")
         print(f"   🔍 REDIRECT CHECK: Redirect info: {vocal_response.redirect_employee_info}")

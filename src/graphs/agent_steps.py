@@ -266,9 +266,10 @@ class AgentSteps:
                     if real_ticket_id and employee_username:
                         if FRONT_MODULES_AVAILABLE:
                             try:
-                                db_manager = DatabaseManager()
-                                db_manager.assign_ticket_to_employee(real_ticket_id, employee_username)
-                                print(f"     ✅ VOCAL ASSISTANT STEP: Ticket {real_ticket_id} assigned to {employee_username}")
+                                ticket_manager = TicketManager()
+                                ticket_manager.assign_ticket(real_ticket_id, employee_username)
+                                # db_manager.assign_ticket_to_employee(real_ticket_id, employee_username)
+                                print(f"     ✅ ✅ ✅ ✅ ✅ ✅ ✅ VOCAL ASSISTANT STEP: Ticket {real_ticket_id} assigned to {employee_username}")
                             except Exception as e:
                                 print(f"     ⚠️ VOCAL ASSISTANT STEP: Failed to assign ticket: {e}")
                         else:
@@ -279,8 +280,8 @@ class AgentSteps:
                     # 2. Create call notification for employee
                     try:
                         if FRONT_MODULES_AVAILABLE:
-                            ticket_manager = TicketManager()
-                            notification_result = ticket_manager.create_call_notification(
+                            DBdatabase = DatabaseManager()
+                            notification_result = DBdatabase.create_call_notification(
                                 employee_username=employee_username,
                                 ticket_data=ticket_data,
                                 call_info=call_info

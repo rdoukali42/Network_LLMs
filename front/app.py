@@ -16,6 +16,7 @@ sys.path.insert(0, str(front_dir))
 from auth import handle_authentication
 from tickets import show_ticket_interface
 from streamlit_config import APP_TITLE, APP_ICON, SESSION_KEYS, check_environment
+from tickets.ticket_manager import TicketManager
 
 def main():
     """Main application function."""
@@ -35,6 +36,10 @@ def main():
     # Initialize session state
     if SESSION_KEYS["authenticated"] not in st.session_state:
         st.session_state[SESSION_KEYS["authenticated"]] = False
+    
+    # Initialize ticket_manager in session state if not present
+    if "ticket_manager" not in st.session_state:
+        st.session_state.ticket_manager = TicketManager()
     
     # Handle authentication
     if not st.session_state[SESSION_KEYS["authenticated"]]:
