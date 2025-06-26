@@ -1,0 +1,113 @@
+<mxfile host="65bd71144e">
+    <diagram id="ZL1BQ3KJDJw8lRARYagR" name="Page-1">
+        <mxGraphModel dx="1238" dy="609" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="13" style="edgeStyle=none;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" parent="1" source="2" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="730" y="375" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="14" value="Solution Found" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="13" vertex="1" connectable="0">
+                    <mxGeometry x="-0.0167" y="1" relative="1" as="geometry">
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="2" value="&lt;u&gt;&lt;i&gt;&lt;b&gt;&lt;font style=&quot;font-size: 14px;&quot;&gt;Meastro&lt;/font&gt;&lt;/b&gt;&lt;/i&gt;&lt;/u&gt;&lt;div&gt;The Main Agent that maitain the workflow of other Agents,&lt;/div&gt;&lt;div&gt;and decide When the solution is ready to deliver.&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFF99;" parent="1" vertex="1">
+                    <mxGeometry x="130" y="330" width="490" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="3" value="&lt;u&gt;&lt;i&gt;&lt;b&gt;Data_Guradian&lt;/b&gt;&lt;/i&gt;&lt;/u&gt;&lt;div&gt;Use local Companies Data to check if there is any explicit answer for the USer query&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#1CFF23;fillColor=#2DFF26;" parent="1" vertex="1">
+                    <mxGeometry x="100" y="510" width="210" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="4" value="Ticket" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#3399FF;" parent="1" vertex="1">
+                    <mxGeometry x="50" y="355" width="90" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="9" value="" style="endArrow=classic;html=1;exitX=0.075;exitY=0.989;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0.2;entryY=-0.05;entryDx=0;entryDy=0;entryPerimeter=0;" parent="1" source="2" target="3" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="180" y="450" as="sourcePoint"/>
+                        <mxPoint x="171" y="537" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="10" value="Send Query" style="edgeLabel;resizable=0;html=1;;align=center;verticalAlign=middle;" parent="9" connectable="0" vertex="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="11" value="" style="endArrow=classic;html=1;exitX=0.614;exitY=-0.05;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0.185;entryY=1.022;entryDx=0;entryDy=0;entryPerimeter=0;" parent="1" source="3" target="2" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="403.5" y="460" as="sourcePoint"/>
+                        <mxPoint x="376.5" y="518" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="12" value="Response&lt;div&gt;&amp;amp;&lt;/div&gt;&lt;div&gt;Reference&lt;/div&gt;" style="edgeLabel;resizable=0;html=1;;align=center;verticalAlign=middle;" parent="11" connectable="0" vertex="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="18" value="&lt;b&gt;&lt;u&gt;&lt;i&gt;HR_Agent&lt;/i&gt;&lt;/u&gt;&lt;/b&gt;&lt;div&gt;Use Tools and Employees data to find the best match for the ticket&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FF3333;" parent="1" vertex="1">
+                    <mxGeometry x="200" y="130" width="310" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="19" value="" style="endArrow=classic;html=1;" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="380" y="193" as="sourcePoint"/>
+                        <mxPoint x="380" y="330" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="20" value="Employess&lt;br&gt;List" style="edgeLabel;resizable=0;html=1;;align=center;verticalAlign=middle;" parent="19" connectable="0" vertex="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="21" value="" style="endArrow=classic;html=1;" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="290" y="330" as="sourcePoint"/>
+                        <mxPoint x="290" y="192" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="22" value="DataGuardian&lt;div&gt;didn&#39;t f&lt;span style=&quot;background-color: light-dark(#ffffff, var(--ge-dark-color, #121212));&quot;&gt;ound&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;background-color: light-dark(#ffffff, var(--ge-dark-color, #121212));&quot;&gt;Answer&lt;/span&gt;&lt;/div&gt;" style="edgeLabel;resizable=0;html=1;;align=center;verticalAlign=middle;" parent="21" connectable="0" vertex="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="23" value="&lt;u&gt;&lt;i&gt;&lt;b&gt;AI Assistant&lt;br&gt;&lt;/b&gt;&lt;/i&gt;&lt;/u&gt;A Voice Agent that retreive the solution from the assigned Employee" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#1CFF23;fillColor=#FF66B3;" parent="1" vertex="1">
+                    <mxGeometry x="410" y="530" width="210" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="24" value="" style="endArrow=classic;html=1;exitX=0.075;exitY=0.989;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0.2;entryY=-0.05;entryDx=0;entryDy=0;entryPerimeter=0;" parent="1" target="23" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="459" y="420" as="sourcePoint"/>
+                        <mxPoint x="461" y="538" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="25" value="Ticket&lt;div&gt;&amp;amp;&lt;/div&gt;&lt;div&gt;Employee&lt;/div&gt;" style="edgeLabel;resizable=0;html=1;;align=center;verticalAlign=middle;" parent="24" connectable="0" vertex="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="26" value="" style="endArrow=classic;html=1;exitX=0.614;exitY=-0.05;exitDx=0;exitDy=0;exitPerimeter=0;" parent="1" source="23" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="693.5" y="461" as="sourcePoint"/>
+                        <mxPoint x="540" y="423" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="27" value="Call&lt;div&gt;History&lt;/div&gt;" style="edgeLabel;resizable=0;html=1;;align=center;verticalAlign=middle;" parent="26" connectable="0" vertex="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="31" value="Update Ticket" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#66FFFF;" parent="1" vertex="1">
+                    <mxGeometry x="730" y="342.5" width="150" height="65" as="geometry"/>
+                </mxCell>
+                <mxCell id="39" value="Agent Tools Summary" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=1;fontColor=#2E7D32;" vertex="1" parent="1">
+                    <mxGeometry x="880" y="120" width="200" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="40" value="🔗 LangChain&#xa;Agent Framework&#xa;Chain Management&#xa;LLM Integration" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E8;strokeColor=#2E7D32;" vertex="1" parent="1">
+                    <mxGeometry x="915" y="160" width="130" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="41" value="📊 LangGraph&#xa;Workflow State&#xa;Agent Routing&#xa;Decision Trees" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1F5FE;strokeColor=#0277BD;" vertex="1" parent="1">
+                    <mxGeometry x="915" y="250" width="130" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="42" value="📈 Langfuse&#xa;Conversation Track&#xa;Performance Monitor&#xa;Debug Logging" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#F57C00;" vertex="1" parent="1">
+                    <mxGeometry x="915" y="340" width="130" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="43" value="🗄️ Vector Databases&#xa;Chroma Storage&#xa;Embeddings&#xa;Similarity Search" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3E5F5;strokeColor=#7B1FA2;" vertex="1" parent="1">
+                    <mxGeometry x="915" y="430" width="130" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="44" value="Cloud Services&#xa;Google APIs&#xa;Speech Processing&#xa;Gemini LLM" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFEBEE;strokeColor=#C62828;" vertex="1" parent="1">
+                    <mxGeometry x="915" y="520" width="130" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="45" value="🎤 Audio Processing&#xa;Streamlit Components&#xa;Real-time Capture&#xa;Voice Recognition" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1565C0;" vertex="1" parent="1">
+                    <mxGeometry x="920" y="610" width="130" height="80" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>

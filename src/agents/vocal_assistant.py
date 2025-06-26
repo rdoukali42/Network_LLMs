@@ -258,6 +258,7 @@ RESPONSABILTIES: "NONE"
 
 CONVERSATION FLOW:
 - Always make sure to REDIRECT_REQUEST to YES only when the employee explicitly says they request a transfer.
+- RESPONSABILTIES: should include any specific skills or tasks the employee role mentioned they can handle using keywords like "UX/UI", "Python", or "Software".
 - If this is the start of conversation: Introduce yourself warmly and explain the ticket
 - If this is a follow-up: dont repeat the introduction, or say hi again, just continue the conversation
 - If conversation has started: ALWAYS acknowledge what the employee just said, then respond naturally
@@ -698,7 +699,9 @@ RESPOND IN THIS EXACT FORMAT:
 REDIRECT_REQUESTED: [True/False]
 USERNAME_TO_REDIRECT: [name or NONE]
 ROLE_OF_THE_REDIRECT_TO: [role/department or NONE]
-RESPONSIBILITIES: [reason for redirect or NONE]
+RESPONSIBILITIES: [skills related to role or NONE]
+
+- RESPONSABILTIES: should include any specific skills or tasks the employee role mentioned they can handle using keywords like "UX/UI", "Python", or "Software".
 
 EXAMPLES:
 - "I meant redirect the call to sir" + "Sarah" → USERNAME_TO_REDIRECT: sarah

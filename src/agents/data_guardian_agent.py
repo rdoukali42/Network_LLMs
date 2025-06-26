@@ -106,6 +106,7 @@ Please analyze the company scope and local documents to determine:
 
 If the query is outside company scope (like fixing household appliances, legal advice unrelated to IT, etc.), respond explicitly with 'Outside Company Scope'.
 If the query is within scope but cannot be answered from documents, proceed to analyze available information.
+If Enough information(Relevance Score more than 0.6) is found, return INFORMATION_FOUND as YES
 
 Analysis steps:
 1. Identify which information directly answers the original query
