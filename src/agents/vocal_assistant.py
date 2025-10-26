@@ -41,7 +41,7 @@ class CloudTTS:
     """Google Cloud Text-to-Speech client using REST API."""
     
     def __init__(self):
-        self.api_key = "AIzaSyD-tvahGE1_oPquWN20h1lpdBcdZ7fUXlk"
+        self.api_key = os.getenv("GOOGLE_API_KEY")
         self.base_url = "https://texttospeech.googleapis.com/v1/text:synthesize"
         self.client = True
     
@@ -108,7 +108,7 @@ class GeminiChat:
     """Google Gemini 1.5 Flash integration for employee role-playing."""
     
     def __init__(self):
-        self.api_key = "AIzaSyD-tvahGE1_oPquWN20h1lpdBcdZ7fUXlk"
+        self.api_key = os.getenv("GOOGLE_API_KEY")
         self.base_url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
     
     def chat(self, message: str, ticket_data: Dict, employee_data: Dict, is_employee: bool = True, conversation_history: List = None) -> str:
@@ -207,7 +207,7 @@ class VocalAssistantAgent(BaseAgent):
         self.tts = CloudTTS()
         self.recognizer = sr.Recognizer()
         # API key for Gemini transcription fallback
-        self.api_key = "AIzaSyD-tvahGE1_oPquWN20h1lpdBcdZ7fUXlk"
+        self.api_key = os.getenv("GOOGLE_API_KEY")
     
     @observe()
     def run(self, input_data: Dict[str, Any]) -> Dict[str, Any]:

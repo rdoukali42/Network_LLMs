@@ -605,3 +605,20 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Google** for Gemini AI models
 - **Streamlit** for the beautiful UI framework
 - Open source community for various tools and libraries
+
+---
+
+**Built with ❤️ using LangChain, LangGraph, and Gemini AI**
+
+*Last Updated: October 2025*
+
+---
+
+### A Note from the Developer
+
+The best code I've written isn't the cleverest—it's the code that made someone else's day easier.
+This project is my attempt at doing just that.
+
+**– Reda**
+
+
