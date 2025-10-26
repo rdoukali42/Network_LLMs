@@ -153,11 +153,20 @@ data/raw/*.txt
 data/processed/*.csv
 data/processed/*.json
 
+# Databases (exclude generated databases)
+data/databases/*.db
+data/databases/*.sqlite
+data/databases/*.sqlite3
+
+# Backup files
+data/backups/
+
 # IDE specific
 .vscode/
 .idea/
 *.swp
 *.swo
+.streamlit/
 
 # macOS
 .DS_Store
@@ -168,3 +177,7 @@ secrets.json
 
 # LangFuse local data
 .langfuse/
+
+# Streamlit specific
+front/.streamlit/
+front/tickets.json
