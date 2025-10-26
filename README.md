@@ -1,308 +1,155 @@
-# 🎫 AI-Powered Support Ticket System# AI Multi-Agent Workflow System
+# 🎫 AI-Powered Support Ticket System
 
+An intelligent multi-agent support system that combines AI-powered document retrieval with human expertise escalation. Built with LangChain, LangGraph, and Google's Gemini AI, featuring voice-enabled expert consultation and real-time ticket management.
 
-
-An intelligent multi-agent support system that combines AI-powered document retrieval with human expertise escalation. Built with LangChain, LangGraph, and Google's Gemini AI, featuring voice-enabled expert consultation and real-time ticket management.A comprehensive AI system implementing multi-agent workflows using LangChain, LangGraph, and Gemini Flash 1.5.
-
-
-
-[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)## 🚀 Quick Start
-
+[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![LangChain](https://img.shields.io/badge/LangChain-Latest-green.svg)](https://github.com/langchain-ai/langchain)
+[![Streamlit](https://img.shields.io/badge/Streamlit-1.50+-red.svg)](https://streamlit.io/)
 
-[![Streamlit](https://img.shields.io/badge/Streamlit-1.50+-red.svg)](https://streamlit.io/)### Prerequisites
+---
 
-- Python 3.8+
+## 📋 Table of Contents
 
----- Google API Key (for Gemini Flash 1.5)
-
-
-
-## 📋 Table of Contents### Installation
-
-```bash
-
-- [Overview](#-overview)# Clone and setup
-
-- [Key Features](#-key-features)git clone <repository>
-
-- [System Architecture](#-system-architecture)cd Network
-
+- [Overview](#-overview)
+- [Key Features](#-key-features)
+- [System Architecture](#-system-architecture)
 - [Technology Stack](#-technology-stack)
-
-- [Project Structure](#-project-structure)# Create virtual environment
-
-- [Installation](#-installation)python -m venv venv
-
-- [Configuration](#-configuration)source venv/bin/activate  # On macOS/Linux
-
+- [Project Structure](#-project-structure)
+- [Installation](#-installation)
+- [Configuration](#-configuration)
 - [Usage](#-usage)
-
-- [API Documentation](#-api-documentation)# Install dependencies
-
-- [Testing](#-testing)pip install -r requirements.txt
-
+- [API Documentation](#-api-documentation)
+- [Testing](#-testing)
 - [Development](#-development)
 
-# Configure environment
+---
 
----cp .env.example .env
+## 🎯 Overview
 
-# Edit .env with your API keys
+This system revolutionizes IT support by intelligently routing queries through a multi-agent AI workflow. When documentation exists, AI provides instant solutions. When human expertise is needed, the system seamlessly connects users with the right experts via voice calls and automatically generates professional solutions.
 
-## 🎯 Overview```
+### **Problem Solved**
 
-
-
-This system revolutionizes IT support by intelligently routing queries through a multi-agent AI workflow. When documentation exists, AI provides instant solutions. When human expertise is needed, the system seamlessly connects users with the right experts via voice calls and automatically generates professional solutions.### Run the Streamlit App
-
-```bash
-
-### **Problem Solved**cd front/
-
-./start.sh
-
-Traditional support systems suffer from:```
-
-- **Information overload**: Hard to find relevant solutions in vast knowledge basesAccess at: http://localhost:8501
-
+Traditional support systems suffer from:
+- **Information overload**: Hard to find relevant solutions in vast knowledge bases
 - **Expert bottlenecks**: Skilled staff overwhelmed with repetitive queries
+- **Slow response times**: Users wait hours for specialized help
+- **Knowledge silos**: Expertise trapped with individual employees
 
-- **Slow response times**: Users wait hours for specialized help**Login credentials:**
+### **Our Solution**
 
-- **Knowledge silos**: Expertise trapped with individual employees- admin / admin123
-
-- user / user123  
-
-### **Our Solution**- demo / demo
-
-
-
-A hybrid AI-human system that:## 🏗️ Project Structure
-
+A hybrid AI-human system that:
 - ✅ **Instantly resolves** 75%+ of queries using RAG (Retrieval Augmented Generation)
+- ✅ **Intelligently escalates** complex issues to the right experts
+- ✅ **Facilitates voice calls** between users and experts when needed
+- ✅ **Auto-generates solutions** from expert conversations
+- ✅ **Maintains context** across entire ticket lifecycle
 
-- ✅ **Intelligently escalates** complex issues to the right experts```
+---
 
-- ✅ **Facilitates voice calls** between users and experts when needed├── src/                    # Core AI system
+## ✨ Key Features
 
-- ✅ **Auto-generates solutions** from expert conversations│   ├── agents/            # Multi-agent implementations
+### **Intelligent Ticket Processing**
+- 🤖 **Multi-Agent AI Workflow**: Orchestrated by MaestroAgent for optimal routing
+- 📚 **Semantic Document Search**: RAG-based retrieval from company knowledge base
+- 🎯 **Smart Expert Matching**: HR Agent finds the best employee for each issue
+- 🔄 **Real-time Status Tracking**: Live updates on ticket progress
 
-- ✅ **Maintains context** across entire ticket lifecycle│   ├── tools/             # Custom tools (Calculator, DocumentAnalysis)
+### **Voice-Enabled Collaboration**
+- 🎙️ **Audio Transcription**: Speech-to-text for user queries
+- 📞 **Voice Call Interface**: Direct expert-user communication
+- 🔊 **Text-to-Speech**: AI-generated voice responses
+- 💬 **Conversation Recording**: Full call history for quality assurance
 
-│   ├── chains/            # LangChain implementations
-
----│   ├── graphs/            # LangGraph workflows
-
-│   └── evaluation/        # LLM evaluation system
-
-## ✨ Key Features├── front/                 # Streamlit web interface
-
-├── tests/                 # Comprehensive test suite
-
-### **Intelligent Ticket Processing**│   ├── unit/             # Unit tests
-
-- 🤖 **Multi-Agent AI Workflow**: Orchestrated by MaestroAgent for optimal routing│   ├── integration/      # Integration tests
-
-- 📚 **Semantic Document Search**: RAG-based retrieval from company knowledge base│   ├── system/           # System-level tests
-
-- 🎯 **Smart Expert Matching**: HR Agent finds the best employee for each issue│   └── evaluation/       # Evaluation tests
-
-- 🔄 **Real-time Status Tracking**: Live updates on ticket progress├── docs/                  # Documentation
-
-│   ├── system/           # System documentation
-
-### **Voice-Enabled Collaboration**│   └── project/          # Project history & guides
-
-- 🎙️ **Audio Transcription**: Speech-to-text for user queries├── examples/             # Demo applications
-
-- 📞 **Voice Call Interface**: Direct expert-user communication├── debug/                # Debug utilities
-
-- 🔊 **Text-to-Speech**: AI-generated voice responses└── configs/              # Configuration files
-
-- 💬 **Conversation Recording**: Full call history for quality assurance```
-
-
-
-### **Professional UI/UX**## 🤖 System Components
-
+### **Professional UI/UX**
 - 🎨 **Modern Streamlit Interface**: Clean, responsive web application
+- 👥 **User Authentication**: Secure employee registration and login
+- 📊 **Dashboard Analytics**: Track ticket metrics and agent performance
+- 🔔 **Real-time Notifications**: Instant updates on ticket changes
 
-- 👥 **User Authentication**: Secure employee registration and login### **Core Agents**
-
-- 📊 **Dashboard Analytics**: Track ticket metrics and agent performance- **MaestroAgent**: Query preprocessing and response synthesis
-
-- 🔔 **Real-time Notifications**: Instant updates on ticket changes- **DataGuardianAgent**: Local document search and verification
-
-
-
-### **Developer-Friendly**### **Available Tools**
-
-- 🏗️ **Modular Architecture**: Clean separation of concerns- **CalculatorTool**: Mathematical calculations
-
-- 📖 **Comprehensive Documentation**: Inline docstrings and API docs- **DocumentAnalysisTool**: Document processing and insights
-
+### **Developer-Friendly**
+- 🏗️ **Modular Architecture**: Clean separation of concerns
+- 📖 **Comprehensive Documentation**: Inline docstrings and API docs
 - 🧪 **Test Suite**: Unit, integration, and system tests
+- 🔧 **Easy Configuration**: YAML-based settings management
 
-- 🔧 **Easy Configuration**: YAML-based settings management### **Key Features**
+---
 
-- ✅ **Multi-agent workflows** with LangGraph
+## 🏗️ System Architecture
 
----- ✅ **Real-time chat interface** with Streamlit
+### **Multi-Agent Workflow**
 
-- ✅ **Tool integration** for enhanced capabilities
-
-## 🏗️ System Architecture- ✅ **LLM evaluation system** with Gemini Flash 1.5
-
-- ✅ **Modular architecture** for easy extension
-
-### **Multi-Agent Workflow**- ✅ **Comprehensive testing** suite
-
-
-
-```## 📖 Documentation
-
+```
 ┌─────────────────────────────────────────────────────────────┐
-
-│                        User Query                           │### System Documentation
-
-└────────────────────────┬────────────────────────────────────┘- **[System Complete Guide](docs/system/SYSTEM_COMPLETE.md)** - Complete system overview
-
-                         ↓- **[Evaluator Fixes](docs/system/EVALUATOR_FIXES_SUMMARY.md)** - LLM evaluator improvements
-
+│                        User Query                           │
+└────────────────────────┬────────────────────────────────────┘
+                         ↓
                   ┌──────────────┐
-
-                  │ MaestroAgent │  (Query Analysis & Orchestration)### Project Documentation  
-
-                  └──────┬───────┘- **[Project History](docs/project/README.md)** - Detailed project documentation
-
-                         ↓- **[Completion Report](docs/project/COMPLETION_REPORT.md)** - Development completion status
-
-              ┌──────────────────────┐- **[LangFuse Integration](docs/project/LANGFUSE_INTEGRATION_GUIDE.md)** - Observability setup
-
+                  │ MaestroAgent │  (Query Analysis & Orchestration)
+                  └──────┬───────┘
+                         ↓
+              ┌──────────────────────┐
               │ DataGuardianAgent    │  (Document Retrieval)
-
-              └──────┬───────────────┘## 🧪 Testing
-
+              └──────┬───────────────┘
                      ↓
-
-            ┌────────────────┐```bash
-
-            │ Documents Found?│# Run all tests
-
-            └────┬────────┬───┘python -m pytest tests/ -v
-
+            ┌────────────────┐
+            │ Documents Found?│
+            └────┬────────┬───┘
                 YES      NO
-
-                 ↓        ↓# Run specific test categories
-
-         ┌───────────┐  ┌──────────┐python -m pytest tests/unit/ -v           # Unit tests
-
-         │ Generate  │  │ HR Agent │  (Expert Matching)python -m pytest tests/integration/ -v    # Integration tests
-
-         │ Response  │  └────┬─────┘python -m pytest tests/system/ -v         # System tests
-
-         └─────┬─────┘       ↓python -m pytest tests/evaluation/ -v     # Evaluation tests
-
-               ↓      ┌──────────────────┐```
-
+                 ↓        ↓
+         ┌───────────┐  ┌──────────┐
+         │ Generate  │  │ HR Agent │  (Expert Matching)
+         │ Response  │  └────┬─────┘
+         └─────┬─────┘       ↓
+               ↓      ┌──────────────────┐
          ┌─────────┐  │ VocalAssistant   │  (Voice Call)
-
-         │ Return  │  └────┬─────────────┘### System Tests
-
-         │ to User │       ↓- `tests/system/test_complete_workflow_tools.py` - End-to-end workflow testing
-
-         └─────────┘  ┌──────────────────┐- `tests/system/verify_websearch_removal.py` - System verification
-
-                      │ Solution Generated│- `tests/system/test_evaluator_fixes.py` - Evaluator testing
-
+         │ Return  │  └────┬─────────────┘
+         │ to User │       ↓
+         └─────────┘  ┌──────────────────┐
+                      │ Solution Generated│
                       └────┬──────────────┘
-
-                           ↓## 🔧 Configuration
-
+                           ↓
                       Return to User
+```
 
-```The system supports multiple configurations:
+### **Core Components**
 
-
-
-### **Core Components**- **Development**: `configs/development.yaml`
-
-- **Production**: `configs/production.yaml` 
-
-#### **Agents**- **Experiments**: `configs/experiments/`
-
+#### **Agents**
 - **MaestroAgent**: System orchestrator and decision-maker
-
-- **DataGuardianAgent**: RAG-based document retrieval specialist## 🎯 Usage Examples
-
+- **DataGuardianAgent**: RAG-based document retrieval specialist
 - **HR_Agent**: Employee skill matching and assignment
+- **VocalAssistant**: Voice call management and transcription
 
-- **VocalAssistant**: Voice call management and transcription### Basic System Usage
-
-```python
-
-#### **Tools**from src.main import AISystem
-
+#### **Tools**
 - **AvailabilityTool**: Real-time employee status checking
-
-- **CustomTools**: Calculator, document analysis, and more# Initialize system
-
-system = AISystem("development")
+- **CustomTools**: Calculator, document analysis, and more
 
 #### **Infrastructure**
+- **Vector Store**: ChromaDB for semantic search
+- **Database**: SQLite for employee and ticket data
+- **LLM**: Google Gemini Flash 1.5 for AI processing
+- **Observability**: LangFuse for monitoring and debugging
 
-- **Vector Store**: ChromaDB for semantic search# Process queries
+---
 
-- **Database**: SQLite for employee and ticket dataresult = system.process_query("What is machine learning?")
+## 🛠️ Technology Stack
 
-- **LLM**: Google Gemini Flash 1.5 for AI processingprint(result['synthesis'])
-
-- **Observability**: LangFuse for monitoring and debugging```
-
-
-
----### Web Interface
-
-The Streamlit app provides a complete web interface with:
-
-## 🛠️ Technology Stack- User authentication
-
-- Real-time chat
-
-### **Core AI/ML**- Multi-agent workflow integration
-
-- **LangChain** (0.1.0+): AI application framework- Session management
-
+### **Core AI/ML**
+- **LangChain** (0.1.0+): AI application framework
 - **LangGraph** (0.1.0+): Multi-agent orchestration
-
-- **Google Gemini**: Primary LLM (Flash 1.5)## 🔮 What's Next
-
+- **Google Gemini**: Primary LLM (Flash 1.5)
 - **ChromaDB** (0.4.0+): Vector database for embeddings
+- **Sentence Transformers** (2.2.0+): Text embeddings
 
-- **Sentence Transformers** (2.2.0+): Text embeddings- [ ] Enhanced tool integrations
-
-- [ ] Advanced retrieval strategies
-
-### **Backend**- [ ] Real-time evaluation dashboard
-
-- **Python** (3.12+): Primary language- [ ] Multi-modal capabilities
-
+### **Backend**
+- **Python** (3.12+): Primary language
 - **SQLite**: Relational database
-
-- **Pydantic** (2.0+): Data validation## 📝 License
-
+- **Pydantic** (2.0+): Data validation
 - **FastAPI** (0.100+): API framework
 
-This project is for educational and research purposes.
-
 ### **Frontend**
-
-- **Streamlit** (1.50+): Web interface---
-
+- **Streamlit** (1.50+): Web interface
 - **Audio Processing**: Speech recognition and synthesis
-
-**Built with:** LangChain • LangGraph • Streamlit • Gemini Flash 1.5 • LangFuse
 
 ### **DevOps & Monitoring**
 - **LangFuse** (2.0+): LLM observability
@@ -363,8 +210,7 @@ ticket_system/
 │   └── backups/                 # Database backups
 │
 ├── docs/                         # Documentation
-│   ├── architecture/            # System diagrams
-│   └── project/                 # Project guides
+│   └── architecture/            # System diagrams
 │
 ├── notebooks/                    # Jupyter notebooks
 ├── scripts/                      # Utility scripts
@@ -386,8 +232,8 @@ ticket_system/
 ### **Step 1: Clone Repository**
 
 ```bash
-git clone https://github.com/yourusername/ticket_system.git
-cd ticket_system
+git clone https://github.com/rdoukali42/Network_LLMs.git
+cd Network_LLMs
 ```
 
 ### **Step 2: Create Virtual Environment**
@@ -407,15 +253,20 @@ venv\Scripts\activate
 ```bash
 # Install all dependencies
 pip install -r requirements.txt
-
-# Install Streamlit (for web interface)
-pip install -r front/requirements_streamlit.txt
 ```
 
 ### **Step 4: Set Up Environment Variables**
 
 Create a `.env` file in the project root:
 
+```bash
+# Copy the example file
+cp .env.example .env
+
+# Edit .env with your API keys
+```
+
+Required environment variables:
 ```bash
 # Google Gemini API
 GOOGLE_API_KEY=your_google_api_key_here
@@ -731,27 +582,20 @@ CREATE TABLE call_notifications (
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please follow these steps:
+Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 
+**Quick steps:**
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
 3. Commit your changes (`git commit -m 'Add amazing feature'`)
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-### **Contribution Guidelines**
-
-- Write clean, documented code
-- Add tests for new features
-- Update README if needed
-- Follow existing code style
-- Keep commits atomic and well-described
-
 ---
 
 ## 📄 License
 
-This project is licensed under the MIT License.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
@@ -761,9 +605,3 @@ This project is licensed under the MIT License.
 - **Google** for Gemini AI models
 - **Streamlit** for the beautiful UI framework
 - Open source community for various tools and libraries
-
----
-
-**Built with ❤️ using LangChain, LangGraph, and Gemini AI**
-
-*Last Updated: October 2025*
